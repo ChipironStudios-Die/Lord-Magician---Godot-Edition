@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://dq3actjqi5yan"]
+
+[ext_resource type="Script" uid="uid://biw4efqfq1tyw" path="res://scripts/GameMain.cs" id="1_main"]
+[ext_resource type="Shader" uid="uid://bbxffkdaecunl" path="res://shaders/crt_overlay.gdshader" id="2_crt"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_crt"]
+shader = ExtResource("2_crt")
+shader_parameter/scanline_alpha = 0.22
+shader_parameter/rgb_stripe_alpha = 0.08
+shader_parameter/flicker_strength = 0.035
+
+[node name="LordMagician" type="Node2D" unique_id=102809871]
+script = ExtResource("1_main")
+
+[node name="CRT" type="CanvasLayer" parent="." unique_id=1779778314]
+layer = 10
+
+[node name="Overlay" type="ColorRect" parent="CRT" unique_id=1387292598]
+material = SubResource("ShaderMaterial_crt")
+offset_right = 1280.0
+offset_bottom = 720.0
+mouse_filter = 2
