@@ -608,8 +608,14 @@ public partial class GameMain : Node2D
 		if (transformY <= 0.1f) return;
 
 		float screenX = size.X * 0.5f * (1f + transformX / transformY);
-		int rayIndex = Mathf.Clamp((int)(screenX / size.X * _zBuffer.Length), 0, _zBuffer.Length - 1);
-		if (transformY >= _zBuffer[rayIndex]) return;
+
+		// Projectile/Item se quedan con la comprobación de un único punto (barato y suficiente
+		// para sprites pequeños); Enemy se recorta columna a columna más abajo.
+		if (sprite.Kind != SpriteKind.Enemy)
+		{
+			int rayIndex = Mathf.Clamp((int)(screenX / size.X * _zBuffer.Length), 0, _zBuffer.Length - 1);
+			if (transformY >= _zBuffer[rayIndex]) return;
+		}
 
 		float spriteHeight = Mathf.Abs(screenDistance / transformY) * sprite.Scale;
 		float wallLineHeight = screenDistance / transformY;
@@ -635,6 +641,8 @@ public partial class GameMain : Node2D
 		Texture2D? enemyTexture = EnemyTexture(enemy.Type);
 		if (enemyTexture == null)
 		{
+			int rayIndex = Mathf.Clamp((int)(screenX / size.X * _zBuffer.Length), 0, _zBuffer.Length - 1);
+			if (transformY >= _zBuffer[rayIndex]) return;
 			DrawCircle(new Vector2(screenX + shake.X, bottom - spriteHeight * 0.5f + shake.Y), spriteHeight * 0.3f, sprite.Color);
 			return;
 		}
@@ -644,8 +652,54 @@ public partial class GameMain : Node2D
 		float spriteWidth = spriteHeight * aspect;
 		Rect2 destinationEnemy = new(screenX - spriteWidth * 0.5f + shake.X, bottom - spriteHeight + shake.Y, spriteWidth, spriteHeight);
 		Rect2 source = new(enemy.AnimationFrame * frameWidth + 1f, 0f, frameWidth - 2f, enemyTexture.GetHeight());
-		DrawTextureRectRegion(enemyTexture, destinationEnemy, source);
-		if (enemy.HitFlash > 0f) DrawRect(destinationEnemy, new Color(1f, 1f, 1f, 0.5f));
+
+		bool anyVisible = DrawTextureColumnsClipped(enemyTexture, destinationEnemy, source, size, transformY);
+		if (anyVisible && enemy.HitFlash > 0f) DrawRect(destinationEnemy, new Color(1f, 1f, 1f, 0.5f));
+	}
+
+	/// <summary>
+	/// Dibuja una textura recortando cada columna de pantalla contra el zBuffer de las paredes,
+	/// en vez de comprobar un único punto central. Así un enemigo que asoma por una esquina se
+	/// revela progresivamente en vez de aparecer/desaparecer de golpe. Agrupa columnas visibles
+	/// consecutivas en tramos para no emitir una llamada de dibujo por cada píxel de ancho.
+	/// </summary>
+	private bool DrawTextureColumnsClipped(Texture2D texture, Rect2 destination, Rect2 source, Vector2 size, float depth)
+	{
+		if (destination.Size.X <= 0f || _zBuffer.Length == 0) return false;
+		int screenStart = Mathf.Max(0, Mathf.FloorToInt(destination.Position.X));
+		int screenEnd = Mathf.Min(Mathf.CeilToInt(size.X) - 1, Mathf.CeilToInt(destination.Position.X + destination.Size.X) - 1);
+		if (screenEnd < screenStart) return false;
+
+		int rayCount = _zBuffer.Length;
+		bool drewAny = false;
+		int runStart = -1;
+
+		for (int column = screenStart; column <= screenEnd + 1; column++)
+		{
+			bool visible = false;
+			if (column <= screenEnd)
+			{
+				int rayIndex = Mathf.Clamp((int)(column / size.X * rayCount), 0, rayCount - 1);
+				visible = depth < _zBuffer[rayIndex];
+			}
+
+			if (visible)
+			{
+				if (runStart < 0) runStart = column;
+			}
+			else if (runStart >= 0)
+			{
+				float u0 = (runStart - destination.Position.X) / destination.Size.X;
+				float u1 = (column - destination.Position.X) / destination.Size.X;
+				Rect2 runSource = new(source.Position.X + u0 * source.Size.X, source.Position.Y, (u1 - u0) * source.Size.X, source.Size.Y);
+				Rect2 runDestination = new(runStart, destination.Position.Y, column - runStart, destination.Size.Y);
+				DrawTextureRectRegion(texture, runDestination, runSource);
+				drewAny = true;
+				runStart = -1;
+			}
+		}
+
+		return drewAny;
 	}
 
 	private void DrawParticle(Particle particle, Vector2 size, float screenDistance, Vector2 direction, Vector2 plane, Vector2 shake)
