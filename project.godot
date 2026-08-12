@@ -18,7 +18,7 @@ config/name="Lord Magician"
 config/version="0.8.4"
 run/main_scene="res://Main.tscn"
 config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
-config/icon="uid://cf2djowp2lrg"
+config/icon="res://assets/sprites/app_icon.png"
 
 [display]
 
@@ -39,7 +39,7 @@ pointing/emulate_mouse_from_touch=false
 
 [rendering]
 
-textures/canvas_textures/default_texture_filter=0
+textures/canvas_textures/default_texture_filter=2
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true

@@ -569,7 +569,7 @@ public partial class GameMain : Node2D
 			Rect2 destination = new(i * columnWidth + shake.X, (size.Y - lineHeight) * 0.5f + shake.Y, columnWidth + 1f, lineHeight);
 
 			if (_wallTextures.TryGetValue(code, out Texture2D? texture))
-				DrawTextureRectRegion(texture, destination, new Rect2(wallX * 127f, 0f, 1f, 128f));
+				DrawTextureRectRegion(texture, destination, new Rect2(wallX * 255f, 0f, 1f, 256f));
 			else
 				DrawRect(destination, WallColor(code));
 
@@ -742,15 +742,18 @@ public partial class GameMain : Node2D
 
 	private void DrawTouchControls(Vector2 size)
 	{
-		Vector2 joystick = new(104f, size.Y - 104f);
-		DrawCircle(joystick, 74f, new Color(1f, 1f, 1f, 0.10f));
-		DrawCircle(joystick + new Vector2(_touchMove.X, -_touchMove.Y) * 54f, 30f, new Color(0f, 0.9f, 1f, 0.48f));
-		Vector2 shoot = new(size.X - 86f, size.Y - 86f);
-		DrawCircle(shoot, 46f, new Color(0.49f, 0.3f, 1f, 0.42f));
-		DrawText("DISPARAR", new Vector2(shoot.X - 37f, shoot.Y + 5f), 12, Colors.White);
-		Vector2 pause = new(size.X - 44f, 44f);
-		DrawCircle(pause, 26f, new Color(0f, 0f, 0f, 0.48f));
-		DrawText("II", new Vector2(pause.X - 7f, pause.Y + 7f), 18, Colors.White);
+		TouchLayout layout = new(size);
+		DrawCircle(layout.JoystickCenter, layout.JoystickRadius, new Color(1f, 1f, 1f, 0.10f));
+		Vector2 knobOffset = new Vector2(_touchMove.X, -_touchMove.Y) * (layout.JoystickRadius - layout.JoystickKnobRadius);
+		DrawCircle(layout.JoystickCenter + knobOffset, layout.JoystickKnobRadius, new Color(0f, 0.9f, 1f, 0.48f));
+
+		DrawCircle(layout.ShootCenter, layout.ShootRadius, new Color(0.49f, 0.3f, 1f, 0.42f));
+		int shootFontSize = Mathf.RoundToInt(13 * layout.UiScale);
+		DrawText("DISPARAR", new Vector2(layout.ShootCenter.X - 40f * layout.UiScale, layout.ShootCenter.Y + 5f * layout.UiScale), shootFontSize, Colors.White);
+
+		DrawCircle(layout.PauseCenter, layout.PauseRadius, new Color(0f, 0f, 0f, 0.48f));
+		int pauseFontSize = Mathf.RoundToInt(18 * layout.UiScale);
+		DrawText("II", new Vector2(layout.PauseCenter.X - 7f * layout.UiScale, layout.PauseCenter.Y + 7f * layout.UiScale), pauseFontSize, Colors.White);
 	}
 
 	private void DrawMenuBackground(Vector2 size)
@@ -878,20 +881,59 @@ public partial class GameMain : Node2D
 
 	private static Rect2 CenteredRect(Vector2 size, float y, float width, float height) => new(size.X * 0.5f - width * 0.5f, y, width, height);
 
+	// Fuente única de verdad para el layout de los controles táctiles: el dibujado
+	// (DrawTouchControls) y la detección de toques (HandlePlayingPress, UpdateTouchJoystick)
+	// usan exactamente los mismos valores, escalados con el alto real de pantalla en vez
+	// de píxeles fijos pensados para el lienzo de diseño de 1280x720.
+	private readonly struct TouchLayout
+	{
+		public readonly float UiScale;
+		public readonly Vector2 JoystickCenter;
+		public readonly float JoystickRadius;
+		public readonly float JoystickKnobRadius;
+		public readonly Vector2 ShootCenter;
+		public readonly float ShootRadius;
+		public readonly Vector2 PauseCenter;
+		public readonly float PauseRadius;
+		public readonly float JoystickZoneWidth;
+		public readonly float JoystickZoneHeight;
+
+		public TouchLayout(Vector2 size)
+		{
+			UiScale = Mathf.Clamp(size.Y / 720f, 0.85f, 2.5f);
+			float joystickMarginX = 260f * UiScale;
+			float joystickMarginBottom = 220f * UiScale;
+			float shootMargin = 112f * UiScale;
+			float pauseMargin = 56f * UiScale;
+			JoystickCenter = new Vector2(joystickMarginX, size.Y - joystickMarginBottom);
+			JoystickRadius = 130f * UiScale;
+			JoystickKnobRadius = 54f * UiScale;
+			ShootCenter = new Vector2(size.X - shootMargin, size.Y - shootMargin);
+			ShootRadius = 84f * UiScale;
+			PauseCenter = new Vector2(size.X - pauseMargin, pauseMargin);
+			PauseRadius = 36f * UiScale;
+			// Zona de agarre del joystick: se calcula a partir de su propio centro/radio
+			// (con margen extra), así siempre encaja aunque se mueva o cambie de tamaño.
+			JoystickZoneWidth = JoystickCenter.X + JoystickRadius + 60f * UiScale;
+			JoystickZoneHeight = (size.Y - JoystickCenter.Y) + JoystickRadius + 60f * UiScale;
+		}
+	}
+
 	private void HandlePlayingPress(Vector2 position, int touchIndex)
 	{
 		Vector2 size = GetViewportRect().Size;
-		if (position.DistanceTo(new Vector2(size.X - 44f, 44f)) < 35f)
+		TouchLayout layout = new(size);
+		if (position.DistanceTo(layout.PauseCenter) < layout.PauseRadius + 12f * layout.UiScale)
 		{
 			SetPhase(GamePhase.Paused);
 			return;
 		}
-		if (position.DistanceTo(new Vector2(size.X - 86f, size.Y - 86f)) < 70f)
+		if (position.DistanceTo(layout.ShootCenter) < layout.ShootRadius + 12f * layout.UiScale)
 		{
 			_touchShooting = true;
 			return;
 		}
-		if (position.X < size.X * 0.30f && position.Y > size.Y - 210f)
+		if (position.X < layout.JoystickZoneWidth && position.Y > size.Y - layout.JoystickZoneHeight)
 		{
 			_joystickTouch = touchIndex;
 			_touchMoveActive = true;
@@ -904,11 +946,10 @@ public partial class GameMain : Node2D
 
 	private void UpdateTouchJoystick(Vector2 position)
 	{
-		Vector2 size = GetViewportRect().Size;
-		Vector2 center = new(104f, size.Y - 104f);
-		Vector2 offset = position - center;
-		if (offset.Length() > 74f) offset = offset.Normalized() * 74f;
-		_touchMove = new Vector2(offset.X / 74f, -offset.Y / 74f);
+		TouchLayout layout = new(GetViewportRect().Size);
+		Vector2 offset = position - layout.JoystickCenter;
+		if (offset.Length() > layout.JoystickRadius) offset = offset.Normalized() * layout.JoystickRadius;
+		_touchMove = new Vector2(offset.X / layout.JoystickRadius, -offset.Y / layout.JoystickRadius);
 	}
 
 	private void HandleUiPress(Vector2 position)
@@ -1142,30 +1183,48 @@ public partial class GameMain : Node2D
 
 	private void CreateWallTextures()
 	{
+		const int textureSize = 256;
+		const int rows = 8;
+		const int cols = 8;
+		const float mortarPx = 3f;
+		float rowHeight = textureSize / (float)rows;
+		float colWidth = textureSize / (float)cols;
+
 		foreach ((int code, Color baseColor) in WallColors)
 		{
-			const int textureSize = 128;
 			Image image = Image.CreateEmpty(textureSize, textureSize, false, Image.Format.Rgba8);
-			image.Fill(baseColor);
-			float rowHeight = textureSize / 8f;
-			float columnWidth = textureSize / 4f;
-			for (int row = 0; row < 8; row++)
+
+			for (int y = 0; y < textureSize; y++)
 			{
-				int yStart = Mathf.FloorToInt(row * rowHeight);
-				int yEnd = Mathf.Min(textureSize - 1, Mathf.FloorToInt((row + 1) * rowHeight));
+				int row = Mathf.Clamp((int)(y / rowHeight), 0, rows - 1);
+				float v = y / rowHeight - row; // 0..1 vertical position within the row
+				bool horizontalMortar = v < mortarPx / rowHeight || v > 1f - mortarPx / rowHeight;
+				// Ladrillos a hiladas alternas (running bond), como un muro real.
+				int rowOffset = row % 2 == 0 ? 0 : (int)(colWidth * 0.5f);
+
 				for (int x = 0; x < textureSize; x++)
 				{
-					if (x % Mathf.FloorToInt(columnWidth) < 2 || yEnd - yStart < 3 && x >= 0) image.SetPixel(x, yEnd, baseColor.Lerp(Colors.Black, 0.4f));
-					else if (yStart < 2) image.SetPixel(x, yStart, baseColor.Lerp(Colors.White, 0.12f));
+					int shiftedX = (x + rowOffset) % textureSize;
+					int col = (int)(shiftedX / colWidth);
+					float u = shiftedX / colWidth - col; // 0..1 horizontal position within the brick
+					bool verticalMortar = u < mortarPx / colWidth;
+
+					if (horizontalMortar || verticalMortar)
+					{
+						image.SetPixel(x, y, baseColor.Lerp(Colors.Black, 0.45f));
+						continue;
+					}
+
+					// Variación de tono por ladrillo determinista (no ruido por píxel/rectángulo al azar).
+					int brickSeed = (row * 928371 + col * 12871 + code * 37) & 0x7fffffff;
+					float variation = (brickSeed % 21 - 10) / 110f; // -0.09..0.09
+					Color brick = variation >= 0f ? baseColor.Lerp(Colors.White, variation) : baseColor.Lerp(Colors.Black, -variation);
+					if (v < 0.15f) brick = brick.Lerp(Colors.White, 0.06f); // realce suave arriba de cada ladrillo
+					image.SetPixel(x, y, brick);
 				}
 			}
-			for (int spot = 0; spot < 20; spot++)
-			{
-				int x = _random.Next(0, textureSize - 12);
-				int y = _random.Next(0, textureSize - 8);
-				Color tint = spot % 2 == 0 ? baseColor.Lerp(Colors.Black, 0.12f) : baseColor.Lerp(Colors.White, 0.05f);
-				for (int yy = y; yy < y + 6; yy++) for (int xx = x; xx < x + 12; xx++) image.SetPixel(xx, yy, tint);
-			}
+
+			image.GenerateMipmaps();
 			_wallTextures[code] = ImageTexture.CreateFromImage(image);
 		}
 	}

@@ -17,15 +17,15 @@
           "C:\\Users\\AlumnoDiegoMartinRei\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
-          "net8.0"
+          "net9.0"
         ],
         "sources": {
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net8.0": {
-            "framework": "net8.0",
-            "targetAlias": "net8.0",
+          "net9.0": {
+            "framework": "net9.0",
+            "targetAlias": "net9.0",
             "projectReferences": {}
           }
         },
@@ -42,9 +42,9 @@
         "SdkAnalysisLevel": "10.0.300"
       },
       "frameworks": {
-        "net8.0": {
-          "framework": "net8.0",
-          "targetAlias": "net8.0",
+        "net9.0": {
+          "framework": "net9.0",
+          "targetAlias": "net9.0",
           "dependencies": {
             "Godot.SourceGenerators": {
               "suppressParent": "All",
@@ -72,27 +72,19 @@
           "downloadDependencies": [
             {
               "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[8.0.29, 8.0.29]"
-            },
-            {
-              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
-              "version": "[8.0.29, 8.0.29]"
+              "version": "[9.0.18, 9.0.18]"
             },
             {
               "name": "Microsoft.NETCore.App.Ref",
-              "version": "[8.0.29, 8.0.29]"
+              "version": "[9.0.18, 9.0.18]"
             },
             {
-              "name": "Microsoft.NETCore.App.Runtime.win-x64",
-              "version": "[8.0.29, 8.0.29]"
+              "name": "Microsoft.NETCore.App.Runtime.Mono.android-arm64",
+              "version": "[9.0.18, 9.0.18]"
             },
             {
               "name": "Microsoft.WindowsDesktop.App.Ref",
-              "version": "[8.0.29, 8.0.29]"
-            },
-            {
-              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
-              "version": "[8.0.29, 8.0.29]"
+              "version": "[9.0.18, 9.0.18]"
             }
           ],
           "frameworkReferences": {
@@ -104,7 +96,7 @@
         }
       },
       "runtimes": {
-        "win-x64": {
+        "android-arm64": {
           "#import": []
         }
       }
