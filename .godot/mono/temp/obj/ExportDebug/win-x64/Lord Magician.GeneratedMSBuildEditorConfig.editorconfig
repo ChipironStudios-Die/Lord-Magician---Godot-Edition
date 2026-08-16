@@ -1,7 +1,7 @@
 is_global = true
 build_property.GodotDisabledSourceGenerators = 
-build_property.GodotProjectDir = C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\
-build_property.GodotProjectDirBase64 = QzpcVXNlcnNcQWx1bW5vRGllZ29NYXJ0aW5SZWlcRG9jdW1lbnRzXExvcmQtTWFnaWNpYW4tLS1Hb2RvdC1FZGl0aW9uXA==
+build_property.GodotProjectDir = C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\
+build_property.GodotProjectDirBase64 = QzpcVXNlcnNcZGllZ29cRG9jdW1lbnRzXFNjcmlwdHMgZGUgY2xhc2VcTG9yZE1hZ2ljaWFuR29kb3RcTG9yZC1NYWdpY2lhbi0tLUdvZG90LUVkaXRpb25c
 build_property.GodotSourceGenerators = 
 build_property.IsGodotToolsProject = 
 build_property.TargetFramework = net8.0
@@ -16,7 +16,7 @@ build_property.EnforceExtendedAnalyzerRules =
 build_property.EntryPointFilePath = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = LordMagician
-build_property.ProjectDir = C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\
+build_property.ProjectDir = C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.EffectiveAnalysisLevelStyle = 8.0

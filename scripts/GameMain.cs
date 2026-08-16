@@ -42,7 +42,12 @@ public partial class GameMain : Node2D
 	private GraphicsQuality _graphicsQuality = GraphicsQuality.Standard;
 	private int _levelIndex;
 	private int _menuIndex;
-	private int _shopIndex;
+	private float _shopScroll;
+	private int _shopFocusIndex;
+	private bool _shopPointerActive;
+	private int _shopPointerTouch = -1;
+	private Vector2 _shopPointerLastPos;
+	private float _shopPointerTotalDrag;
 	private float _musicVolume = 0.5f;
 	private float _fxVolume = 0.8f;
 	private float _lookSensitivity = 1f;
@@ -54,7 +59,10 @@ public partial class GameMain : Node2D
 	private int _joystickTouch = -1;
 	private int _lookTouch = -1;
 	private Vector2 _lastLookPosition;
+	private UiAction _draggingSlider = UiAction.None;
+	private int _draggingSliderTouchIndex = -1;
 	private float[] _zBuffer = Array.Empty<float>();
+	private float[] _wallTopBuffer = Array.Empty<float>();
 
 	private static readonly Dictionary<int, Color> WallColors = new()
 	{
@@ -102,6 +110,7 @@ public partial class GameMain : Node2D
 			{
 				if (key.Keycode is Key.Escape or Key.P)
 					SetPhase(GamePhase.Paused);
+				if (key.Keycode == Key.E) ActivateShield();
 			}
 			else
 			{
@@ -109,8 +118,8 @@ public partial class GameMain : Node2D
 				if (key.Keycode is Key.Down or Key.S) MoveMenu(1);
 				if (key.Keycode is Key.Enter or Key.Space) ConfirmMenu();
 				if (key.Keycode is Key.Escape or Key.Backspace) CancelMenu();
-				if (_phase == GamePhase.Shop && key.Keycode is Key.Left or Key.A) ChangeShop(-1);
-				if (_phase == GamePhase.Shop && key.Keycode is Key.Right or Key.D) ChangeShop(1);
+				if (key.Keycode is Key.Left or Key.A) { if (_phase == GamePhase.Settings) AdjustFocusedSetting(-1); }
+				if (key.Keycode is Key.Right or Key.D) { if (_phase == GamePhase.Settings) AdjustFocusedSetting(1); }
 			}
 		}
 
@@ -120,13 +129,14 @@ public partial class GameMain : Node2D
 			{
 				if (joyButton.ButtonIndex is JoyButton.Start or JoyButton.Back)
 					SetPhase(GamePhase.Paused);
+				if (joyButton.ButtonIndex == JoyButton.LeftShoulder) ActivateShield();
 			}
 			else
 			{
 				if (joyButton.ButtonIndex == JoyButton.DpadUp) MoveMenu(-1);
 				if (joyButton.ButtonIndex == JoyButton.DpadDown) MoveMenu(1);
-				if (joyButton.ButtonIndex == JoyButton.DpadLeft && _phase == GamePhase.Shop) ChangeShop(-1);
-				if (joyButton.ButtonIndex == JoyButton.DpadRight && _phase == GamePhase.Shop) ChangeShop(1);
+				if (joyButton.ButtonIndex == JoyButton.DpadLeft) { if (_phase == GamePhase.Settings) AdjustFocusedSetting(-1); }
+				if (joyButton.ButtonIndex == JoyButton.DpadRight) { if (_phase == GamePhase.Settings) AdjustFocusedSetting(1); }
 				if (joyButton.ButtonIndex is JoyButton.A or JoyButton.X) ConfirmMenu();
 				if (joyButton.ButtonIndex is JoyButton.B or JoyButton.Y or JoyButton.Back) CancelMenu();
 			}
@@ -139,20 +149,60 @@ public partial class GameMain : Node2D
 				_mouseShooting = mouseButton.Pressed;
 				if (mouseButton.Pressed) HandlePlayingPress(mouseButton.Position, -2);
 			}
+			else if (_phase == GamePhase.Shop)
+			{
+				if (mouseButton.Pressed) HandleShopPointerDown(mouseButton.Position, -2);
+				else HandleShopPointerUp(mouseButton.Position);
+			}
 			else if (mouseButton.Pressed)
 			{
 				HandleUiPress(mouseButton.Position);
 			}
+			else
+			{
+				_draggingSlider = UiAction.None;
+			}
 		}
 
-		if (inputEvent is InputEventMouseMotion mouseMotion && _phase == GamePhase.Playing)
-			_player.Angle += mouseMotion.Relative.X * 0.005f * _lookSensitivity;
+		if (_phase == GamePhase.Shop && inputEvent is InputEventMouseButton wheel && wheel.Pressed && wheel.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown)
+			_shopScroll += wheel.ButtonIndex == MouseButton.WheelUp ? -60f : 60f;
+
+		if (inputEvent is InputEventMouseMotion mouseMotion)
+		{
+			if (_phase == GamePhase.Playing)
+			{
+				_player.Angle += mouseMotion.Relative.X * 0.005f * _lookSensitivity;
+			}
+			else if (_phase == GamePhase.Shop && Input.IsMouseButtonPressed(MouseButton.Left))
+			{
+				HandleShopPointerMove(mouseMotion.Position);
+			}
+			else if (_draggingSlider != UiAction.None && Input.IsMouseButtonPressed(MouseButton.Left))
+			{
+				UiHit? hit = FindUiHit(_draggingSlider);
+				if (hit.HasValue) ApplySliderValue(_draggingSlider, hit.Value.Rect, mouseMotion.Position.X);
+			}
+		}
 
 		if (inputEvent is InputEventScreenTouch screenTouch)
 		{
-			if (_phase != GamePhase.Playing)
+			if (_phase == GamePhase.Shop)
 			{
-				if (screenTouch.Pressed) HandleUiPress(screenTouch.Position);
+				if (screenTouch.Pressed) HandleShopPointerDown(screenTouch.Position, screenTouch.Index);
+				else if (screenTouch.Index == _shopPointerTouch) HandleShopPointerUp(screenTouch.Position);
+			}
+			else if (_phase != GamePhase.Playing)
+			{
+				if (screenTouch.Pressed)
+				{
+					HandleUiPress(screenTouch.Position);
+					_draggingSliderTouchIndex = _draggingSlider != UiAction.None ? screenTouch.Index : -1;
+				}
+				else if (screenTouch.Index == _draggingSliderTouchIndex)
+				{
+					_draggingSlider = UiAction.None;
+					_draggingSliderTouchIndex = -1;
+				}
 			}
 			else if (screenTouch.Pressed)
 			{
@@ -171,14 +221,26 @@ public partial class GameMain : Node2D
 			}
 		}
 
-		if (inputEvent is InputEventScreenDrag screenDrag && _phase == GamePhase.Playing)
+		if (inputEvent is InputEventScreenDrag screenDrag)
 		{
-			if (screenDrag.Index == _joystickTouch)
-				UpdateTouchJoystick(screenDrag.Position);
-			else if (screenDrag.Index == _lookTouch)
+			if (_phase == GamePhase.Playing)
 			{
-				_player.Angle += (screenDrag.Position.X - _lastLookPosition.X) * 0.005f * _lookSensitivity;
-				_lastLookPosition = screenDrag.Position;
+				if (screenDrag.Index == _joystickTouch)
+					UpdateTouchJoystick(screenDrag.Position);
+				else if (screenDrag.Index == _lookTouch)
+				{
+					_player.Angle += (screenDrag.Position.X - _lastLookPosition.X) * 0.005f * _lookSensitivity;
+					_lastLookPosition = screenDrag.Position;
+				}
+			}
+			else if (_phase == GamePhase.Shop && screenDrag.Index == _shopPointerTouch)
+			{
+				HandleShopPointerMove(screenDrag.Position);
+			}
+			else if (screenDrag.Index == _draggingSliderTouchIndex && _draggingSlider != UiAction.None)
+			{
+				UiHit? hit = FindUiHit(_draggingSlider);
+				if (hit.HasValue) ApplySliderValue(_draggingSlider, hit.Value.Rect, screenDrag.Position.X);
 			}
 		}
 	}
@@ -193,6 +255,12 @@ public partial class GameMain : Node2D
 			DrawGame(size);
 			DrawHud(size);
 			DrawCrosshair(size);
+			if (_player.ShieldTimeRemaining > 0f)
+			{
+				float pulse = 0.06f + 0.03f * Mathf.Sin(_frameTick * 0.15f);
+				DrawRect(new Rect2(Vector2.Zero, size), new Color(0.25f, 0.7f, 1f, pulse));
+				DrawRect(new Rect2(Vector2.Zero, size), new Color(0.6f, 0.9f, 1f, 0.5f), false, 6f);
+			}
 			if (!HasGamepad() && DisplayServer.IsTouchscreenAvailable()) DrawTouchControls(size);
 			return;
 		}
@@ -226,6 +294,9 @@ public partial class GameMain : Node2D
 		}
 
 		if (_player.ScreenShake > 0f) _player.ScreenShake -= dt * 5f;
+
+		if (_player.ShieldTimeRemaining > 0f) _player.ShieldTimeRemaining = Mathf.Max(0f, _player.ShieldTimeRemaining - dt);
+		else if (_player.ShieldCooldownRemaining > 0f) _player.ShieldCooldownRemaining = Mathf.Max(0f, _player.ShieldCooldownRemaining - dt);
 
 		Vector2 leftStick = ApplyDeadzone(new(Input.GetJoyAxis(0, JoyAxis.LeftX), Input.GetJoyAxis(0, JoyAxis.LeftY)));
 		Vector2 rightStick = ApplyDeadzone(new(Input.GetJoyAxis(0, JoyAxis.RightX), Input.GetJoyAxis(0, JoyAxis.RightY)));
@@ -325,11 +396,9 @@ public partial class GameMain : Node2D
 			}
 			else if (_player.Position.DistanceSquaredTo(projectile.Position) < 0.16f)
 			{
-				_player.Health -= projectile.Damage * (1f - _player.ArmorDefense);
-				_player.ScreenShake = 0.3f;
+				DamagePlayer(projectile.Damage * (1f - _player.ArmorDefense), 0.3f);
 				dead = true;
 				SpawnExplosion(projectile.Position, projectile.Color, 8);
-				PlaySfx("snd_player_hit");
 			}
 
 			if (dead) _projectiles.RemoveAt(p);
@@ -361,7 +430,10 @@ public partial class GameMain : Node2D
 			if (distanceSquared <= 0.00001f) continue;
 			float distance = Mathf.Sqrt(distanceSquared);
 			Vector2 direction = toPlayer / distance;
-			bool canSee = HasLineOfSight(enemy.Position, direction, distance, map);
+			// El enemigo "ve" al jugador exactamente cuando el jugador ve al enemigo: si se
+			// dibujó al menos un píxel suyo en pantalla este fotograma (comprobado en DrawWorldSprite,
+			// recortado columna a columna contra las paredes), cuenta como dentro de su campo de visión.
+			bool canSee = enemy.PlayerVisible;
 			if (!canSee && enemy.Type is not EnemyType.Boss and not EnemyType.Sentinel) continue;
 
 			switch (enemy.Type)
@@ -383,8 +455,8 @@ public partial class GameMain : Node2D
 					if (distance > 7f) MoveWithWalls(ref enemy.Position, direction * enemy.Speed * 0.6f * dt, 0.3f, map);
 					if (distance < 10f && enemy.AttackCooldown <= 0f)
 					{
-						_projectiles.Add(new Projectile(enemy.Position, Mathf.Atan2(toPlayer.Y, toPlayer.X), 4f, rangedDamage, ProjectileOwner.Enemy, Colors.Green));
-						enemy.AttackCooldown = 2f * cooldownMultiplier;
+						_projectiles.Add(new Projectile(enemy.Position, Mathf.Atan2(toPlayer.Y, toPlayer.X), 5f, rangedDamage, ProjectileOwner.Enemy, Colors.Green));
+						enemy.AttackCooldown = 1.6f * cooldownMultiplier;
 					}
 					break;
 
@@ -478,8 +550,20 @@ public partial class GameMain : Node2D
 		}
 	}
 
+	// Activa el Escudo Arcano si se posee, no está ya activo y no está en recarga.
+	// 7.5s de inmunidad total al daño, seguidos de una recarga antes de poder reactivarlo.
+	private void ActivateShield()
+	{
+		if (_phase != GamePhase.Playing || !_player.OwnsShield) return;
+		if (_player.ShieldTimeRemaining > 0f || _player.ShieldCooldownRemaining > 0f) return;
+		_player.ShieldTimeRemaining = 7.5f;
+		_player.ShieldCooldownRemaining = 15f;
+		PlaySfx("snd_shoot");
+	}
+
 	private void DamagePlayer(float damage, float shake)
 	{
+		if (_player.ShieldTimeRemaining > 0f) return;
 		_player.Health -= damage;
 		_player.ScreenShake = shake;
 		PlaySfx("snd_player_hit");
@@ -490,14 +574,6 @@ public partial class GameMain : Node2D
 		int x = Mathf.FloorToInt(position.X);
 		int y = Mathf.FloorToInt(position.Y);
 		return y < 0 || y >= map.Length || x < 0 || x >= map[0].Length || map[y][x] != 0;
-	}
-
-	private bool HasLineOfSight(Vector2 origin, Vector2 direction, float distance, int[][] map)
-	{
-		if (distance >= 12f) return false;
-		for (float checkDistance = 0.5f; checkDistance < distance; checkDistance += 0.5f)
-			if (IsWall(origin + direction * checkDistance, map)) return false;
-		return true;
 	}
 
 	private void MoveWithWalls(ref Vector2 position, Vector2 movement, float radius, int[][] map)
@@ -531,6 +607,7 @@ public partial class GameMain : Node2D
 			_ => Mathf.Clamp((int)(size.X * 0.5f), 100, 2000)
 		};
 		if (_zBuffer.Length != rayCount) _zBuffer = new float[rayCount];
+		if (_wallTopBuffer.Length != rayCount) _wallTopBuffer = new float[rayCount];
 
 		int[][] map = GameData.Levels[_levelIndex].Map;
 		float screenDistance = (size.X * 0.5f) / Mathf.Tan(FieldOfView * 0.5f);
@@ -566,7 +643,9 @@ public partial class GameMain : Node2D
 			wallX -= Mathf.Floor(wallX);
 			float lineHeight = screenDistance / wallDistance;
 			int code = mapY >= 0 && mapY < map.Length && mapX >= 0 && mapX < map[0].Length ? map[mapY][mapX] : 1;
-			Rect2 destination = new(i * columnWidth + shake.X, (size.Y - lineHeight) * 0.5f + shake.Y, columnWidth + 1f, lineHeight);
+			float wallTop = (size.Y - lineHeight) * 0.5f;
+			_wallTopBuffer[i] = wallTop;
+			Rect2 destination = new(i * columnWidth + shake.X, wallTop + shake.Y, columnWidth + 1f, lineHeight);
 
 			if (_wallTextures.TryGetValue(code, out Texture2D? texture))
 				DrawTextureRectRegion(texture, destination, new Rect2(wallX * 255f, 0f, 1f, 256f));
@@ -579,7 +658,11 @@ public partial class GameMain : Node2D
 
 		List<WorldSprite> sprites = new();
 		foreach (Enemy enemy in _enemies)
-			if (enemy.Alive) sprites.Add(new WorldSprite(enemy.Position, SpriteKind.Enemy, enemy, EnemyColor(enemy.Type), EnemyScale(enemy.Type)));
+		{
+			if (!enemy.Alive) continue;
+			enemy.PlayerVisible = false;
+			sprites.Add(new WorldSprite(enemy.Position, SpriteKind.Enemy, enemy, EnemyColor(enemy.Type), EnemyScale(enemy.Type)));
+		}
 		foreach (Projectile projectile in _projectiles)
 			sprites.Add(new WorldSprite(projectile.Position, SpriteKind.Projectile, projectile, projectile.Color, 0.25f));
 		foreach (WorldItem item in _items)
@@ -631,9 +714,17 @@ public partial class GameMain : Node2D
 		{
 			WorldItem item = (WorldItem)sprite.Source;
 			Texture2D? texture = item.Type == ItemType.PotionRed ? _redPotion : _bluePotion;
-			Rect2 destination = new(screenX - spriteHeight * 0.5f + shake.X, bottom - spriteHeight + shake.Y, spriteHeight, spriteHeight);
-			if (texture != null) DrawTextureRect(texture, destination, false);
-			else DrawCircle(destination.GetCenter(), spriteHeight * 0.3f, sprite.Color);
+			if (texture != null)
+			{
+				float itemAspect = (float)texture.GetWidth() / texture.GetHeight();
+				float itemWidth = spriteHeight * itemAspect;
+				Rect2 destination = new(screenX - itemWidth * 0.5f + shake.X, bottom - spriteHeight + shake.Y, itemWidth, spriteHeight);
+				DrawTextureRect(texture, destination, false);
+			}
+			else
+			{
+				DrawCircle(new Vector2(screenX + shake.X, bottom - spriteHeight * 0.5f + shake.Y), spriteHeight * 0.3f, sprite.Color);
+			}
 			return;
 		}
 
@@ -643,6 +734,7 @@ public partial class GameMain : Node2D
 		{
 			int rayIndex = Mathf.Clamp((int)(screenX / size.X * _zBuffer.Length), 0, _zBuffer.Length - 1);
 			if (transformY >= _zBuffer[rayIndex]) return;
+			enemy.PlayerVisible = true;
 			DrawCircle(new Vector2(screenX + shake.X, bottom - spriteHeight * 0.5f + shake.Y), spriteHeight * 0.3f, sprite.Color);
 			return;
 		}
@@ -654,14 +746,18 @@ public partial class GameMain : Node2D
 		Rect2 source = new(enemy.AnimationFrame * frameWidth + 1f, 0f, frameWidth - 2f, enemyTexture.GetHeight());
 
 		bool anyVisible = DrawTextureColumnsClipped(enemyTexture, destinationEnemy, source, size, transformY);
+		enemy.PlayerVisible = anyVisible;
 		if (anyVisible && enemy.HitFlash > 0f) DrawRect(destinationEnemy, new Color(1f, 1f, 1f, 0.5f));
 	}
 
 	/// <summary>
 	/// Dibuja una textura recortando cada columna de pantalla contra el zBuffer de las paredes,
 	/// en vez de comprobar un único punto central. Así un enemigo que asoma por una esquina se
-	/// revela progresivamente en vez de aparecer/desaparecer de golpe. Agrupa columnas visibles
-	/// consecutivas en tramos para no emitir una llamada de dibujo por cada píxel de ancho.
+	/// revela progresivamente en vez de aparecer/desaparecer de golpe. También tiene en cuenta
+	/// que las paredes solo ocupan una franja vertical limitada de la columna (dejando cielo/suelo
+	/// visibles arriba/abajo): si el sprite cae fuera de esa franja no se considera tapado aunque
+	/// esté más lejos que la pared. Agrupa columnas visibles consecutivas en tramos para no emitir
+	/// una llamada de dibujo por cada píxel de ancho.
 	/// </summary>
 	private bool DrawTextureColumnsClipped(Texture2D texture, Rect2 destination, Rect2 source, Vector2 size, float depth)
 	{
@@ -680,7 +776,19 @@ public partial class GameMain : Node2D
 			if (column <= screenEnd)
 			{
 				int rayIndex = Mathf.Clamp((int)(column / size.X * rayCount), 0, rayCount - 1);
-				visible = depth < _zBuffer[rayIndex];
+				if (depth < _zBuffer[rayIndex])
+				{
+					visible = true;
+				}
+				else
+				{
+					// Más lejos que la pared en esta columna: solo cuenta como "tapado" si la
+					// franja que realmente se dibujó ahí (ni cielo ni suelo) se solapa con el
+					// sprite. Por encima/debajo de esa franja no hay pared real dibujada.
+					float wallTop = _wallTopBuffer[rayIndex];
+					float wallBottom = size.Y - wallTop;
+					visible = destination.Position.Y + destination.Size.Y <= wallTop || destination.Position.Y >= wallBottom;
+				}
 			}
 
 			if (visible)
@@ -746,6 +854,17 @@ public partial class GameMain : Node2D
 		DrawHudBar("VIDA", _player.Health / _player.MaxHealth, Color.FromHtml("ef5350"), new Vector2(barX, 46));
 		DrawHudBar("MANA", _player.Mana / _player.MaxMana, Color.FromHtml("42a5f5"), new Vector2(barX, 68));
 
+		if (_player.OwnsShield)
+		{
+			string shieldText = _player.ShieldTimeRemaining > 0f ? $"ESCUDO ACTIVO ({_player.ShieldTimeRemaining:0.0}s)"
+				: _player.ShieldCooldownRemaining > 0f ? $"Escudo en recarga ({_player.ShieldCooldownRemaining:0}s)"
+				: "Escudo listo (E)";
+			Color shieldColor = _player.ShieldTimeRemaining > 0f ? Color.FromHtml("64c8ff")
+				: _player.ShieldCooldownRemaining > 0f ? new Color(1f, 1f, 1f, 0.5f)
+				: Color.FromHtml("bfe6ff");
+			DrawText(shieldText, new Vector2(barX, 90), 14, shieldColor);
+		}
+
 		DrawMiniMap(new Rect2(16, 82, 128, 128));
 		if (GameData.Levels[_levelIndex].Mission == MissionType.Collect)
 			DrawText($"Pergaminos: {_player.ItemsCollected}/{GameData.Levels[_levelIndex].TargetCount}", new Vector2(16, 228), 14, Colors.Violet);
@@ -805,6 +924,20 @@ public partial class GameMain : Node2D
 		int shootFontSize = Mathf.RoundToInt(13 * layout.UiScale);
 		DrawText("DISPARAR", new Vector2(layout.ShootCenter.X - 40f * layout.UiScale, layout.ShootCenter.Y + 5f * layout.UiScale), shootFontSize, Colors.White);
 
+		if (_player.OwnsShield)
+		{
+			Color shieldFill = _player.ShieldTimeRemaining > 0f ? new Color(0.25f, 0.7f, 1f, 0.55f)
+				: _player.ShieldCooldownRemaining > 0f ? new Color(0.4f, 0.4f, 0.4f, 0.35f)
+				: new Color(0.25f, 0.7f, 1f, 0.30f);
+			DrawCircle(layout.ShieldCenter, layout.ShieldRadius, shieldFill);
+			DrawCircle(layout.ShieldCenter, layout.ShieldRadius, new Color(1f, 1f, 1f, 0.5f), false, 2f);
+			int shieldFontSize = Mathf.RoundToInt(11 * layout.UiScale);
+			string shieldLabel = _player.ShieldTimeRemaining > 0f ? $"{_player.ShieldTimeRemaining:0.0}s"
+				: _player.ShieldCooldownRemaining > 0f ? $"{_player.ShieldCooldownRemaining:0}s"
+				: "ESCUDO";
+			DrawText(shieldLabel, new Vector2(layout.ShieldCenter.X - 24f * layout.UiScale, layout.ShieldCenter.Y + 4f * layout.UiScale), shieldFontSize, Colors.White);
+		}
+
 		DrawCircle(layout.PauseCenter, layout.PauseRadius, new Color(0f, 0f, 0f, 0.48f));
 		int pauseFontSize = Mathf.RoundToInt(18 * layout.UiScale);
 		DrawText("II", new Vector2(layout.PauseCenter.X - 7f * layout.UiScale, layout.PauseCenter.Y + 7f * layout.UiScale), pauseFontSize, Colors.White);
@@ -838,19 +971,102 @@ public partial class GameMain : Node2D
 
 	private void DrawSettings(Vector2 size)
 	{
-		DrawCenteredText("AJUSTES", 76f, 38, Colors.Gold);
-		float x = size.X * 0.5f - 240f;
+		DrawCenteredText("AJUSTES", 70f, 38, Colors.White);
+
+		const float panelWidth = 640f;
+		float left = size.X * 0.5f - panelWidth * 0.5f;
+		const float gap = 12f;
+		float optionWidth = (panelWidth - gap * 2f) / 3f;
 		float y = 118f;
-		const float width = 480f;
-		DrawButton(new Rect2(x, y, width, 42), $"Dificultad: {DifficultyName(_difficulty)}", UiAction.CycleDifficulty, _menuIndex == 0); y += 51f;
-		DrawButton(new Rect2(x, y, width, 42), $"Resolución del raycaster: {QualityName(_graphicsQuality)}", UiAction.CycleQuality, _menuIndex == 1); y += 51f;
-		DrawButton(new Rect2(x, y, 232, 42), $"Música -  {Mathf.RoundToInt(_musicVolume * 100f)}%", UiAction.MusicDown, _menuIndex == 2); 
-		DrawButton(new Rect2(x + 248, y, 232, 42), "Música +", UiAction.MusicUp, _menuIndex == 3); y += 51f;
-		DrawButton(new Rect2(x, y, 232, 42), $"Efectos -  {Mathf.RoundToInt(_fxVolume * 100f)}%", UiAction.FxDown, _menuIndex == 4);
-		DrawButton(new Rect2(x + 248, y, 232, 42), "Efectos +", UiAction.FxUp, _menuIndex == 5); y += 51f;
-		DrawButton(new Rect2(x, y, 232, 42), $"Giro -  x{_lookSensitivity:0.0}", UiAction.SensitivityDown, _menuIndex == 6);
-		DrawButton(new Rect2(x + 248, y, 232, 42), "Giro +", UiAction.SensitivityUp, _menuIndex == 7); y += 72f;
-		DrawButton(new Rect2(x, y, width, 48), "VOLVER AL TÍTULO", UiAction.SettingsBack, _menuIndex == 8);
+
+		DrawCenteredText("DIFICULTAD", y, 17, Color.FromHtml("22d3ee"));
+		y += 22f;
+		Rect2 difficultyRow = new(left, y, panelWidth, 54f);
+		DrawSettingsOption(new Rect2(left, y, optionWidth, 54f), "EASY", UiAction.SetDifficultyEasy, _difficulty == Difficulty.Easy);
+		DrawSettingsOption(new Rect2(left + optionWidth + gap, y, optionWidth, 54f), "NORMAL", UiAction.SetDifficultyNormal, _difficulty == Difficulty.Normal);
+		DrawSettingsOption(new Rect2(left + (optionWidth + gap) * 2f, y, optionWidth, 54f), "HARD", UiAction.SetDifficultyHard, _difficulty == Difficulty.Hard);
+		if (_menuIndex == 0) DrawPillOutline(difficultyRow.Grow(6f), Color.FromHtml("22d3ee"), 2f);
+		y += 54f + 34f;
+
+		DrawCenteredText("GRÁFICOS", y, 17, Color.FromHtml("f2c94c"));
+		y += 22f;
+		Rect2 qualityRow = new(left, y, panelWidth, 54f);
+		DrawSettingsOption(new Rect2(left, y, optionWidth, 54f), "Rendimiento", UiAction.SetQualityPerformance, _graphicsQuality == GraphicsQuality.Performance);
+		DrawSettingsOption(new Rect2(left + optionWidth + gap, y, optionWidth, 54f), "Estándar", UiAction.SetQualityStandard, _graphicsQuality == GraphicsQuality.Standard);
+		DrawSettingsOption(new Rect2(left + (optionWidth + gap) * 2f, y, optionWidth, 54f), "Alta Definición", UiAction.SetQualityHighDef, _graphicsQuality == GraphicsQuality.HighDefinition);
+		if (_menuIndex == 1) DrawPillOutline(qualityRow.Grow(6f), Color.FromHtml("22d3ee"), 2f);
+		y += 54f + 40f;
+
+		const float sliderHeight = 26f;
+		float sensitivityFill = Mathf.Clamp((_lookSensitivity - 0.4f) / (2.5f - 0.4f), 0f, 1f);
+		DrawCenteredText($"SENSIBILIDAD ({Mathf.RoundToInt(_lookSensitivity * 100f)}%)", y, 16, Colors.White);
+		y += 20f;
+		DrawSettingsSlider(new Rect2(left, y, panelWidth, sliderHeight), sensitivityFill, UiAction.SetSensitivity, _menuIndex == 2);
+		y += sliderHeight + 34f;
+
+		DrawCenteredText($"VOLUMEN MÚSICA ({Mathf.RoundToInt(_musicVolume * 100f)}%)", y, 16, Colors.White);
+		y += 20f;
+		DrawSettingsSlider(new Rect2(left, y, panelWidth, sliderHeight), _musicVolume, UiAction.SetMusicVolume, _menuIndex == 3);
+		y += sliderHeight + 34f;
+
+		DrawCenteredText($"VOLUMEN EFECTOS ({Mathf.RoundToInt(_fxVolume * 100f)}%)", y, 16, Colors.White);
+		y += 20f;
+		DrawSettingsSlider(new Rect2(left, y, panelWidth, sliderHeight), _fxVolume, UiAction.SetFxVolume, _menuIndex == 4);
+		y += sliderHeight + 44f;
+
+		DrawSettingsOption(CenteredRect(size, y, 300f, 54f), "VOLVER AL TÍTULO", UiAction.SettingsBack, _menuIndex == 5);
+	}
+
+	/// <summary>Rectángulo con extremos totalmente redondeados (forma de píldora), relleno.</summary>
+	private void DrawPillRect(Rect2 rect, Color color)
+	{
+		float radius = Mathf.Min(rect.Size.X, rect.Size.Y) * 0.5f;
+		if (rect.Size.X <= rect.Size.Y + 0.01f)
+		{
+			DrawCircle(rect.GetCenter(), radius, color);
+			return;
+		}
+		DrawRect(new Rect2(rect.Position.X + radius, rect.Position.Y, rect.Size.X - radius * 2f, rect.Size.Y), color);
+		DrawCircle(new Vector2(rect.Position.X + radius, rect.Position.Y + radius), radius, color);
+		DrawCircle(new Vector2(rect.Position.X + rect.Size.X - radius, rect.Position.Y + radius), radius, color);
+	}
+
+	/// <summary>Contorno (sin relleno) de una píldora, usado como indicador de foco de teclado/mando.</summary>
+	private void DrawPillOutline(Rect2 rect, Color color, float width)
+	{
+		float radius = Mathf.Min(rect.Size.X, rect.Size.Y) * 0.5f;
+		DrawCircle(new Vector2(rect.Position.X + radius, rect.Position.Y + radius), radius, color, false, width);
+		DrawCircle(new Vector2(rect.Position.X + rect.Size.X - radius, rect.Position.Y + radius), radius, color, false, width);
+		DrawRect(new Rect2(rect.Position.X + radius, rect.Position.Y, rect.Size.X - radius * 2f, rect.Size.Y), color, false, width);
+	}
+
+	/// <summary>Botón tipo píldora para Ajustes: relleno morado + contorno blanco cuando "selected" es la opción activa.</summary>
+	private void DrawSettingsOption(Rect2 rect, string label, UiAction action, bool selected)
+	{
+		if (selected)
+		{
+			DrawPillRect(rect.Grow(2f), Colors.White);
+			DrawPillRect(rect, Color.FromHtml("4a2e97"));
+		}
+		else
+		{
+			DrawPillRect(rect, Color.FromHtml("525252"));
+		}
+		DrawString(_font, new Vector2(rect.Position.X, rect.Position.Y + rect.Size.Y * 0.63f), label, HorizontalAlignment.Center, rect.Size.X, 16, Colors.White);
+		_uiHits.Add(new UiHit(action, rect));
+	}
+
+	/// <summary>Barra deslizante tipo píldora: tramo relleno (azul) / vacío (lavanda), divisor y pomo.</summary>
+	private void DrawSettingsSlider(Rect2 rect, float fillT, UiAction action, bool focused)
+	{
+		fillT = Mathf.Clamp(fillT, 0f, 1f);
+		DrawPillRect(rect, Color.FromHtml("dce0f9"));
+		float fillWidth = rect.Size.X * fillT;
+		if (fillWidth > 1f) DrawRect(new Rect2(rect.Position.X, rect.Position.Y, fillWidth, rect.Size.Y), Color.FromHtml("435d9a"));
+		DrawRect(new Rect2(rect.Position.X + fillWidth - 1.5f, rect.Position.Y - 6f, 3f, rect.Size.Y + 12f), Color.FromHtml("7b4bff"));
+		DrawCircle(new Vector2(rect.Position.X + fillWidth, rect.Position.Y + rect.Size.Y * 0.5f), rect.Size.Y * 0.5f + 4f, Color.FromHtml("334155"));
+		if (focused) DrawPillOutline(rect.Grow(6f), Color.FromHtml("22d3ee"), 2f);
+		_uiHits.Add(new UiHit(action, rect));
 	}
 
 	private void DrawLevelClear(Vector2 size)
@@ -862,27 +1078,174 @@ public partial class GameMain : Node2D
 
 	private void DrawShop(Vector2 size)
 	{
-		DrawCenteredText("TIENDA", 60f, 38, Colors.Gold);
-		DrawCenteredText($"Oro: {_player.Gold}", 88f, 20, Colors.White);
-		List<ShopEntry> entries = GetShopEntries();
-		ShopEntry entry = entries[_shopIndex];
-		string category = entry.Kind switch { ShopEntryKind.Potion => "POCIONES", ShopEntryKind.Weapon => "ARMAS", ShopEntryKind.Armor => "ARMADURAS", _ => "ACCESORIOS" };
-		DrawCenteredText(category, 152f, 18, Color.FromHtml("a78bfa"));
+		DrawCenteredText("TIENDA", 50f, 34, Colors.Gold);
+		DrawCenteredText($"Oro: {_player.Gold}", 80f, 18, Colors.White);
 
-		Rect2 card = CenteredRect(size, 176f, 560f, 185f);
-		DrawRect(card, new Color(0.12f, 0.06f, 0.24f, 0.92f));
-		DrawRect(card, Color.FromHtml("7c4dff"), false, 2f);
-		DrawCenteredText(entry.Label, 226f, 24, Colors.White);
-		DrawCenteredText(ShopDetail(entry), 260f, 18, Color.FromHtml("d8b4fe"));
-		DrawCenteredText($"{entry.Cost} oro", 300f, 22, Colors.Gold);
-		DrawCenteredText(ShopStatus(entry), 334f, 15, new Color(1f, 1f, 1f, 0.7f));
+		List<ShopRow> rows = BuildShopRows();
+		List<float> tops = ShopRowTops(rows);
+		float totalHeight = tops.Count > 0 ? tops[^1] + ShopRowHeight(rows[^1]) : 0f;
 
-		DrawButton(new Rect2(card.Position.X, 390f, 120f, 48f), "<", UiAction.ShopPrevious, _menuIndex == 0);
-		DrawButton(new Rect2(card.Position.X + 135f, 390f, 290f, 48f), "COMPRAR / EQUIPAR", UiAction.ShopBuy, _menuIndex == 1, CanBuy(entry));
-		DrawButton(new Rect2(card.End.X - 120f, 390f, 120f, 48f), ">", UiAction.ShopNext, _menuIndex == 2);
-		DrawCenteredText($"Objeto {_shopIndex + 1} de {entries.Count}", 468f, 15, new Color(1f, 1f, 1f, 0.6f));
-		DrawButton(CenteredRect(size, 516f, 330f, 52f), "SIGUIENTE NIVEL", UiAction.ShopContinue, _menuIndex == 3);
+		const float viewportTop = 116f;
+		float viewportBottom = size.Y - 78f;
+		float viewportHeight = Mathf.Max(0f, viewportBottom - viewportTop);
+		_shopScroll = Mathf.Clamp(_shopScroll, 0f, Mathf.Max(0f, totalHeight - viewportHeight));
+
+		const float panelWidth = 620f;
+		float left = size.X * 0.5f - panelWidth * 0.5f;
+
+		int itemIndex = -1;
+		for (int i = 0; i < rows.Count; i++)
+		{
+			ShopRow row = rows[i];
+			float rowHeight = ShopRowHeight(row);
+			float y = viewportTop + tops[i] - _shopScroll;
+			if (row.Entry.HasValue) itemIndex++;
+			if (y + rowHeight < viewportTop || y > viewportBottom) continue;
+
+			if (!row.Entry.HasValue)
+			{
+				DrawText(row.Header!, new Vector2(left, y + rowHeight * 0.72f), 17, Color.FromHtml("a78bfa"));
+				continue;
+			}
+
+			DrawShopRow(new Rect2(left, y, panelWidth, rowHeight - 10f), row.Entry.Value, itemIndex == _shopFocusIndex);
+		}
+
+		Rect2 continueRect = CenteredRect(size, size.Y - 62f, 330f, 48f);
+		DrawPillRect(continueRect, Color.FromHtml("4527a0"));
+		DrawString(_font, new Vector2(continueRect.Position.X, continueRect.Position.Y + continueRect.Size.Y * 0.65f), "SIGUIENTE NIVEL", HorizontalAlignment.Center, continueRect.Size.X, 16, Colors.White);
+		_uiHits.Add(new UiHit(UiAction.ShopContinue, continueRect));
 	}
+
+	private void DrawShopRow(Rect2 rect, ShopEntry entry, bool focused)
+	{
+		bool equipped = entry.Kind switch
+		{
+			ShopEntryKind.Weapon => _player.EquippedWeapon == entry.Index,
+			ShopEntryKind.Armor => _player.EquippedArmor == entry.Index,
+			ShopEntryKind.Accessory => _player.EquippedAccessory == entry.Index,
+			ShopEntryKind.Shield => _player.OwnsShield,
+			_ => false
+		};
+		bool owned = entry.Kind switch
+		{
+			ShopEntryKind.Weapon => _player.OwnedWeapons.Contains(entry.Index),
+			ShopEntryKind.Armor => _player.OwnedArmors.Contains(entry.Index),
+			ShopEntryKind.Accessory => _player.OwnedAccessories.Contains(entry.Index),
+			_ => false
+		};
+
+		Color fill = entry.Kind == ShopEntryKind.Potion
+			? Color.FromHtml("4a2e97")
+			: equipped ? Color.FromHtml("6d3ef0") : owned ? Color.FromHtml("4a2e97") : Color.FromHtml("454545");
+
+		if (focused)
+		{
+			DrawPillRect(rect.Grow(2f), Colors.White);
+			DrawPillRect(rect, fill);
+		}
+		else
+		{
+			DrawPillRect(rect, fill);
+		}
+
+		string label = entry.Kind == ShopEntryKind.Potion || entry.Kind == ShopEntryKind.Shield
+			? entry.Label
+			: $"{entry.Label} ({ShopDetail(entry)})";
+		DrawString(_font, new Vector2(rect.Position.X + 20f, rect.Position.Y + rect.Size.Y * 0.63f), label, HorizontalAlignment.Left, rect.Size.X - 130f, 17, Colors.White);
+		DrawString(_font, new Vector2(rect.End.X - 110f, rect.Position.Y + rect.Size.Y * 0.63f), $"{entry.Cost} O", HorizontalAlignment.Right, 90f, 17, Colors.Gold);
+	}
+
+	private readonly record struct ShopRow(string? Header, ShopEntry? Entry);
+
+	private List<ShopRow> BuildShopRows()
+	{
+		List<ShopEntry> entries = GetShopEntries();
+		List<ShopRow> rows = new();
+		ShopEntryKind? lastKind = null;
+		foreach (ShopEntry entry in entries)
+		{
+			if (entry.Kind != lastKind)
+			{
+				string header = entry.Kind switch { ShopEntryKind.Potion => "POCIONES", ShopEntryKind.Weapon => "ARMAS", ShopEntryKind.Armor => "ARMADURAS", ShopEntryKind.Shield => "ESCUDO", _ => "ACCESORIOS" };
+				rows.Add(new ShopRow(header, null));
+				lastKind = entry.Kind;
+			}
+			rows.Add(new ShopRow(null, entry));
+		}
+		return rows;
+	}
+
+	private static float ShopRowHeight(ShopRow row) => row.Entry.HasValue ? 74f : 42f;
+
+	private static List<float> ShopRowTops(List<ShopRow> rows)
+	{
+		List<float> tops = new(rows.Count);
+		float y = 0f;
+		foreach (ShopRow row in rows)
+		{
+			tops.Add(y);
+			y += ShopRowHeight(row);
+		}
+		return tops;
+	}
+
+	// Fila de ítem bajo un punto de pantalla (en coordenadas de lienzo), o null si cae
+	// sobre una cabecera de categoría o fuera de la lista. Usa el mismo layout que DrawShop.
+	private ShopEntry? ShopEntryAt(Vector2 position, Vector2 size)
+	{
+		List<ShopRow> rows = BuildShopRows();
+		List<float> tops = ShopRowTops(rows);
+		const float viewportTop = 116f;
+		float viewportBottom = size.Y - 78f;
+		const float panelWidth = 620f;
+		float left = size.X * 0.5f - panelWidth * 0.5f;
+		if (position.X < left || position.X > left + panelWidth) return null;
+
+		for (int i = 0; i < rows.Count; i++)
+		{
+			float rowHeight = ShopRowHeight(rows[i]);
+			float y = viewportTop + tops[i] - _shopScroll;
+			if (y + rowHeight < viewportTop || y > viewportBottom) continue;
+			if (position.Y >= y && position.Y < y + rowHeight) return rows[i].Entry;
+		}
+		return null;
+	}
+
+	private void MoveShopFocus(int direction)
+	{
+		int itemCount = BuildShopRows().Count(r => r.Entry.HasValue);
+		if (itemCount == 0) return;
+		_shopFocusIndex = Mathf.PosMod(_shopFocusIndex + direction, itemCount);
+		ScrollShopToFocus();
+	}
+
+	private void ScrollShopToFocus()
+	{
+		List<ShopRow> rows = BuildShopRows();
+		List<float> tops = ShopRowTops(rows);
+		float viewportHeight = Mathf.Max(0f, (GetViewportRect().Size.Y - 78f) - 116f);
+		int itemIndex = -1;
+		for (int i = 0; i < rows.Count; i++)
+		{
+			if (!rows[i].Entry.HasValue) continue;
+			itemIndex++;
+			if (itemIndex != _shopFocusIndex) continue;
+			float rowTop = tops[i];
+			float rowBottom = rowTop + ShopRowHeight(rows[i]);
+			if (rowTop < _shopScroll) _shopScroll = rowTop;
+			else if (rowBottom > _shopScroll + viewportHeight) _shopScroll = rowBottom - viewportHeight;
+			return;
+		}
+	}
+
+	private void ConfirmShopFocus()
+	{
+		List<ShopEntry> entries = BuildShopRows().Where(r => r.Entry.HasValue).Select(r => r.Entry!.Value).ToList();
+		if (_shopFocusIndex >= 0 && _shopFocusIndex < entries.Count) BuyShopEntry(entries[_shopFocusIndex]);
+	}
+
+
 
 	private void DrawGameOver(Vector2 size)
 	{
@@ -947,6 +1310,8 @@ public partial class GameMain : Node2D
 		public readonly float JoystickKnobRadius;
 		public readonly Vector2 ShootCenter;
 		public readonly float ShootRadius;
+		public readonly Vector2 ShieldCenter;
+		public readonly float ShieldRadius;
 		public readonly Vector2 PauseCenter;
 		public readonly float PauseRadius;
 		public readonly float JoystickZoneWidth;
@@ -964,6 +1329,10 @@ public partial class GameMain : Node2D
 			JoystickKnobRadius = 54f * UiScale;
 			ShootCenter = new Vector2(size.X - shootMargin, size.Y - shootMargin);
 			ShootRadius = 84f * UiScale;
+			// El botón de escudo se apoya arriba a la izquierda del de disparo, a una distancia
+			// proporcional a ambos radios, para que no se solapen a ningún tamaño de pantalla.
+			ShieldCenter = ShootCenter + new Vector2(-(ShootRadius + 46f * UiScale), -(ShootRadius + 46f * UiScale));
+			ShieldRadius = 52f * UiScale;
 			PauseCenter = new Vector2(size.X - pauseMargin, pauseMargin);
 			PauseRadius = 36f * UiScale;
 			// Zona de agarre del joystick: se calcula a partir de su propio centro/radio
@@ -987,6 +1356,11 @@ public partial class GameMain : Node2D
 			_touchShooting = true;
 			return;
 		}
+		if (_player.OwnsShield && position.DistanceTo(layout.ShieldCenter) < layout.ShieldRadius + 12f * layout.UiScale)
+		{
+			ActivateShield();
+			return;
+		}
 		if (position.X < layout.JoystickZoneWidth && position.Y > size.Y - layout.JoystickZoneHeight)
 		{
 			_joystickTouch = touchIndex;
@@ -1006,26 +1380,99 @@ public partial class GameMain : Node2D
 		_touchMove = new Vector2(offset.X / layout.JoystickRadius, -offset.Y / layout.JoystickRadius);
 	}
 
-	private void HandleUiPress(Vector2 position)
+	private void HandleShopPointerDown(Vector2 position, int touchIndex)
+	{
+		if (HandleUiPress(position)) return; // ya lo consumió "SIGUIENTE NIVEL"
+		_shopPointerActive = true;
+		_shopPointerTouch = touchIndex;
+		_shopPointerLastPos = position;
+		_shopPointerTotalDrag = 0f;
+	}
+
+	private void HandleShopPointerMove(Vector2 position)
+	{
+		if (!_shopPointerActive) return;
+		_shopScroll -= position.Y - _shopPointerLastPos.Y;
+		_shopPointerTotalDrag += (position - _shopPointerLastPos).Length();
+		_shopPointerLastPos = position;
+	}
+
+	private void HandleShopPointerUp(Vector2 position)
+	{
+		if (!_shopPointerActive) return;
+		_shopPointerActive = false;
+		_shopPointerTouch = -1;
+		if (_shopPointerTotalDrag < 12f)
+		{
+			ShopEntry? entry = ShopEntryAt(position, GetViewportRect().Size);
+			if (entry.HasValue) BuyShopEntry(entry.Value);
+		}
+	}
+
+	private bool HandleUiPress(Vector2 position)
 	{
 		for (int i = _uiHits.Count - 1; i >= 0; i--)
 		{
 			if (_uiHits[i].Rect.HasPoint(position))
 			{
-				HandleUiAction(_uiHits[i].Action);
-				return;
+				UiAction action = _uiHits[i].Action;
+				if (IsSliderAction(action))
+				{
+					_draggingSlider = action;
+					ApplySliderValue(action, _uiHits[i].Rect, position.X);
+				}
+				else
+				{
+					HandleUiAction(action);
+				}
+				return true;
 			}
+		}
+		return false;
+	}
+
+	private static bool IsSliderAction(UiAction action) => action is UiAction.SetSensitivity or UiAction.SetMusicVolume or UiAction.SetFxVolume;
+
+	private void ApplySliderValue(UiAction action, Rect2 rect, float pointerX)
+	{
+		float t = rect.Size.X > 0f ? Mathf.Clamp((pointerX - rect.Position.X) / rect.Size.X, 0f, 1f) : 0f;
+		switch (action)
+		{
+			case UiAction.SetSensitivity: _lookSensitivity = Mathf.Lerp(0.4f, 2.5f, t); break;
+			case UiAction.SetMusicVolume: _musicVolume = t; UpdateMusicVolume(); break;
+			case UiAction.SetFxVolume: _fxVolume = t; break;
+		}
+	}
+
+	private UiHit? FindUiHit(UiAction action)
+	{
+		for (int i = _uiHits.Count - 1; i >= 0; i--)
+			if (_uiHits[i].Action == action) return _uiHits[i];
+		return null;
+	}
+
+	// Ajusta con Izquierda/Derecha (teclado o mando) la fila de Ajustes actualmente enfocada
+	// por teclado/mando (_menuIndex), en vez de arrastrar como con el ratón/dedo.
+	private void AdjustFocusedSetting(int direction)
+	{
+		switch (_menuIndex)
+		{
+			case 0: _difficulty = (Difficulty)Mathf.PosMod((int)_difficulty + direction, 3); break;
+			case 1: _graphicsQuality = (GraphicsQuality)Mathf.PosMod((int)_graphicsQuality + direction, 3); break;
+			case 2: _lookSensitivity = Mathf.Clamp(_lookSensitivity + direction * 0.1f, 0.4f, 2.5f); break;
+			case 3: _musicVolume = Mathf.Clamp(_musicVolume + direction * 0.05f, 0f, 1f); UpdateMusicVolume(); break;
+			case 4: _fxVolume = Mathf.Clamp(_fxVolume + direction * 0.05f, 0f, 1f); break;
 		}
 	}
 
 	private void MoveMenu(int direction)
 	{
+		if (_phase == GamePhase.Shop) { MoveShopFocus(direction); return; }
 		int count = _phase switch
 		{
 			GamePhase.MainMenu => 2,
-			GamePhase.Settings => 9,
+			GamePhase.Settings => 6,
 			GamePhase.LevelClear => 2,
-			GamePhase.Shop => 4,
 			GamePhase.GameOver => 2,
 			GamePhase.Paused => 2,
 			_ => 1
@@ -1035,12 +1482,12 @@ public partial class GameMain : Node2D
 
 	private void ConfirmMenu()
 	{
+		if (_phase == GamePhase.Shop) { ConfirmShopFocus(); return; }
 		UiAction action = _phase switch
 		{
 			GamePhase.MainMenu => _menuIndex == 0 ? UiAction.Start : UiAction.OpenSettings,
-			GamePhase.Settings => (UiAction)((int)UiAction.CycleDifficulty + _menuIndex),
+			GamePhase.Settings => _menuIndex == 5 ? UiAction.SettingsBack : UiAction.None,
 			GamePhase.LevelClear => _menuIndex == 0 ? UiAction.LevelShop : UiAction.LevelContinue,
-			GamePhase.Shop => new[] { UiAction.ShopPrevious, UiAction.ShopBuy, UiAction.ShopNext, UiAction.ShopContinue }[_menuIndex],
 			GamePhase.GameOver => _menuIndex == 0 ? UiAction.Retry : UiAction.GameOverMenu,
 			GamePhase.Paused => _menuIndex == 0 ? UiAction.Resume : UiAction.PauseQuit,
 			GamePhase.Finished => UiAction.VictoryMenu,
@@ -1067,19 +1514,14 @@ public partial class GameMain : Node2D
 			case UiAction.Start: LoadLevel(0); break;
 			case UiAction.OpenSettings: SetPhase(GamePhase.Settings); break;
 			case UiAction.SettingsBack: SetPhase(GamePhase.MainMenu); break;
-			case UiAction.CycleDifficulty: _difficulty = (Difficulty)(((int)_difficulty + 1) % 3); break;
-			case UiAction.CycleQuality: _graphicsQuality = (GraphicsQuality)(((int)_graphicsQuality + 1) % 3); break;
-			case UiAction.MusicDown: _musicVolume = Mathf.Max(0f, _musicVolume - 0.1f); UpdateMusicVolume(); break;
-			case UiAction.MusicUp: _musicVolume = Mathf.Min(1f, _musicVolume + 0.1f); UpdateMusicVolume(); break;
-			case UiAction.FxDown: _fxVolume = Mathf.Max(0f, _fxVolume - 0.1f); break;
-			case UiAction.FxUp: _fxVolume = Mathf.Min(1f, _fxVolume + 0.1f); break;
-			case UiAction.SensitivityDown: _lookSensitivity = Mathf.Max(0.4f, _lookSensitivity - 0.1f); break;
-			case UiAction.SensitivityUp: _lookSensitivity = Mathf.Min(2.5f, _lookSensitivity + 0.1f); break;
+			case UiAction.SetDifficultyEasy: _difficulty = Difficulty.Easy; break;
+			case UiAction.SetDifficultyNormal: _difficulty = Difficulty.Normal; break;
+			case UiAction.SetDifficultyHard: _difficulty = Difficulty.Hard; break;
+			case UiAction.SetQualityPerformance: _graphicsQuality = GraphicsQuality.Performance; break;
+			case UiAction.SetQualityStandard: _graphicsQuality = GraphicsQuality.Standard; break;
+			case UiAction.SetQualityHighDef: _graphicsQuality = GraphicsQuality.HighDefinition; break;
 			case UiAction.LevelShop: SetPhase(GamePhase.Shop); break;
 			case UiAction.LevelContinue: AdvanceLevel(); break;
-			case UiAction.ShopPrevious: ChangeShop(-1); break;
-			case UiAction.ShopNext: ChangeShop(1); break;
-			case UiAction.ShopBuy: BuyCurrentShopItem(); break;
 			case UiAction.ShopContinue: AdvanceLevel(); break;
 			case UiAction.Retry: LoadLevel(_levelIndex); break;
 			case UiAction.GameOverMenu: SetPhase(GamePhase.MainMenu); break;
@@ -1100,7 +1542,8 @@ public partial class GameMain : Node2D
 		List<ShopEntry> entries = new()
 		{
 			new("Poción de Vida", 10, ShopEntryKind.Potion, 0),
-			new("Poción de Maná", 8, ShopEntryKind.Potion, 1)
+			new("Maná Máximo", 8, ShopEntryKind.Potion, 1),
+			new("Escudo Arcano", 220, ShopEntryKind.Shield, 0)
 		};
 		for (int i = 1; i < GameData.Weapons.Length; i++) entries.Add(new ShopEntry(GameData.Weapons[i].Name, GameData.Weapons[i].Cost, ShopEntryKind.Weapon, i));
 		for (int i = 1; i < GameData.Armors.Length; i++) entries.Add(new ShopEntry(GameData.Armors[i].Name, GameData.Armors[i].Cost, ShopEntryKind.Armor, i));
@@ -1108,44 +1551,21 @@ public partial class GameMain : Node2D
 		return entries;
 	}
 
-	private void ChangeShop(int direction)
-	{
-		int count = GetShopEntries().Count;
-		_shopIndex = Mathf.PosMod(_shopIndex + direction, count);
-	}
-
 	private string ShopDetail(ShopEntry entry) => entry.Kind switch
 	{
-		ShopEntryKind.Potion => entry.Index == 0 ? "+30 puntos de vida" : "+30 puntos de maná",
+		ShopEntryKind.Potion => entry.Index == 0 ? "+30 puntos de vida" : "+15 de maná máximo (permanente)",
 		ShopEntryKind.Weapon => $"Daño: {GameData.Weapons[entry.Index].Damage:0} · Maná: {GameData.Weapons[entry.Index].ManaCost:0} · CD: {GameData.Weapons[entry.Index].Cooldown:0.00}s",
 		ShopEntryKind.Armor => $"Defensa: {GameData.Armors[entry.Index].Defense * 100f:0}%",
+		ShopEntryKind.Shield => "Actívalo en partida (tecla E / LB / botón táctil): inmunidad total 7.5s, con recarga",
 		_ => $"Ataque: +{GameData.Accessories[entry.Index].AttackBonus * 100f:0}%"
 	};
 
-	private string ShopStatus(ShopEntry entry)
-	{
-		bool owned = entry.Kind switch
-		{
-			ShopEntryKind.Weapon => _player.OwnedWeapons.Contains(entry.Index),
-			ShopEntryKind.Armor => _player.OwnedArmors.Contains(entry.Index),
-			ShopEntryKind.Accessory => _player.OwnedAccessories.Contains(entry.Index),
-			_ => false
-		};
-		bool equipped = entry.Kind switch
-		{
-			ShopEntryKind.Weapon => _player.EquippedWeapon == entry.Index,
-			ShopEntryKind.Armor => _player.EquippedArmor == entry.Index,
-			ShopEntryKind.Accessory => _player.EquippedAccessory == entry.Index,
-			_ => false
-		};
-		if (equipped) return "EQUIPADO";
-		if (owned) return "Ya lo tienes: pulsa para equiparlo";
-		return _player.Gold >= entry.Cost ? "Disponible" : "Oro insuficiente";
-	}
+
 
 	private bool CanBuy(ShopEntry entry)
 	{
 		if (entry.Kind == ShopEntryKind.Potion) return _player.Gold >= entry.Cost;
+		if (entry.Kind == ShopEntryKind.Shield) return _player.OwnsShield || _player.Gold >= entry.Cost;
 		bool owned = entry.Kind switch
 		{
 			ShopEntryKind.Weapon => _player.OwnedWeapons.Contains(entry.Index),
@@ -1155,9 +1575,8 @@ public partial class GameMain : Node2D
 		return owned || _player.Gold >= entry.Cost;
 	}
 
-	private void BuyCurrentShopItem()
+	private void BuyShopEntry(ShopEntry entry)
 	{
-		ShopEntry entry = GetShopEntries()[_shopIndex];
 		if (!CanBuy(entry)) return;
 
 		switch (entry.Kind)
@@ -1165,7 +1584,10 @@ public partial class GameMain : Node2D
 			case ShopEntryKind.Potion:
 				_player.Gold -= entry.Cost;
 				if (entry.Index == 0) _player.Health = Mathf.Min(_player.MaxHealth, _player.Health + 30f);
-				else _player.Mana = Mathf.Min(_player.MaxMana, _player.Mana + 30f);
+				else { _player.MaxMana += 15f; _player.Mana = _player.MaxMana; }
+				break;
+			case ShopEntryKind.Shield:
+				if (!_player.OwnsShield) { _player.Gold -= entry.Cost; _player.OwnsShield = true; }
 				break;
 			case ShopEntryKind.Weapon:
 				if (!_player.OwnedWeapons.Contains(entry.Index)) { _player.Gold -= entry.Cost; _player.OwnedWeapons.Add(entry.Index); }
@@ -1189,6 +1611,7 @@ public partial class GameMain : Node2D
 		_touchShooting = false;
 		_mouseShooting = false;
 		_touchMove = Vector2.Zero;
+		if (phase == GamePhase.Shop) { _shopScroll = 0f; _shopFocusIndex = 0; _shopPointerActive = false; }
 		if (phase == GamePhase.MainMenu) PlayMusic("bgm_menu");
 		if (phase == GamePhase.Playing) PlayMusic("bgm_game");
 
@@ -1297,8 +1720,6 @@ public partial class GameMain : Node2D
 	private static float EnemyScale(EnemyType type) => type switch { EnemyType.Tank => 1.5f, EnemyType.Boss => 2.5f, EnemyType.Sentinel => 2.8f, _ => 1.2f };
 	private Texture2D? EnemyTexture(EnemyType type) => type switch { EnemyType.Melee => _redEnemy, EnemyType.Ranged => _greenWizard, EnemyType.Tank => _blueTank, EnemyType.Boss => _boss, _ => _sentinel };
 	private static string EnemySound(EnemyType type) => type switch { EnemyType.Melee => "snd_enemy_red", EnemyType.Ranged => "snd_enemy_green", EnemyType.Tank => "snd_enemy_blue", EnemyType.Boss => "snd_enemy_boss", _ => "snd_enemy_sentinel" };
-	private static string DifficultyName(Difficulty value) => value switch { Difficulty.Easy => "Fácil", Difficulty.Hard => "Difícil", _ => "Normal" };
-	private static string QualityName(GraphicsQuality value) => value switch { GraphicsQuality.Performance => "Rendimiento", GraphicsQuality.HighDefinition => "Alta definición", _ => "Estándar" };
 	private bool HasGamepad() => Input.GetConnectedJoypads().Count > 0;
 	private float NextFloat() => (float)_random.NextDouble();
 
@@ -1316,13 +1737,15 @@ public partial class GameMain : Node2D
 
 	private enum SpriteKind { Enemy, Projectile, Item }
 	private enum ItemType { PotionRed, PotionBlue, Scroll }
-	private enum ShopEntryKind { Potion, Weapon, Armor, Accessory }
+	private enum ShopEntryKind { Potion, Weapon, Armor, Accessory, Shield }
 	private enum UiAction
 	{
 		None,
 		Start, OpenSettings,
-		CycleDifficulty, CycleQuality, MusicDown, MusicUp, FxDown, FxUp, SensitivityDown, SensitivityUp, SettingsBack,
-		LevelShop, LevelContinue, ShopPrevious, ShopBuy, ShopNext, ShopContinue,
+		SetDifficultyEasy, SetDifficultyNormal, SetDifficultyHard,
+		SetQualityPerformance, SetQualityStandard, SetQualityHighDef,
+		SetSensitivity, SetMusicVolume, SetFxVolume, SettingsBack,
+		LevelShop, LevelContinue, ShopContinue,
 		Retry, GameOverMenu, Resume, PauseQuit, VictoryMenu
 	}
 
@@ -1349,6 +1772,9 @@ public partial class GameMain : Node2D
 		public readonly HashSet<int> OwnedWeapons = new() { 0 };
 		public readonly HashSet<int> OwnedArmors = new() { 0 };
 		public readonly HashSet<int> OwnedAccessories = new() { 0 };
+		public bool OwnsShield;
+		public float ShieldTimeRemaining;
+		public float ShieldCooldownRemaining;
 		public float ScreenShake;
 		public int ItemsCollected;
 		public float WeaponDamage => GameData.Weapons[EquippedWeapon].Damage * (1f + 0.05f * (Level - 1)) * (1f + GameData.Accessories[EquippedAccessory].AttackBonus);
@@ -1372,6 +1798,7 @@ public partial class GameMain : Node2D
 		public float Bob;
 		public int AnimationFrame;
 		public float AnimationTimer;
+		public bool PlayerVisible;
 		public bool Alive => Hp > 0f;
 
 		public Enemy(Vector2 position, float hp, EnemyType type, float speed, int expReward, int goldMin, int goldMax)
