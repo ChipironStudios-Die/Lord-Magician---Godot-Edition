@@ -1613,7 +1613,8 @@ public partial class GameMain : Node2D
 		_touchMove = Vector2.Zero;
 		if (phase == GamePhase.Shop) { _shopScroll = 0f; _shopFocusIndex = 0; _shopPointerActive = false; }
 		if (phase == GamePhase.MainMenu) PlayMusic("bgm_menu");
-		if (phase == GamePhase.Playing) PlayMusic("bgm_game");
+		if ((phase == GamePhase.Playing) && (_levelIndex + 1 == 5 || _levelIndex + 1 == 8)) PlayMusic("bgm_boss_game");
+		if ((phase == GamePhase.Playing) && (_levelIndex + 1 != 5 && _levelIndex + 1 != 8)) PlayMusic("bgm_regular_game");
 
 		// En PC, el ratón no se usa para apuntar (el disparo sigue _player.Angle),
 		// así que se oculta durante la partida para no tapar la mira. Se usa
@@ -1626,7 +1627,7 @@ public partial class GameMain : Node2D
 
 	private void LoadAudio()
 	{
-		foreach (string name in new[] { "bgm_menu", "bgm_game", "snd_shoot", "snd_player_hit", "snd_enemy_red", "snd_enemy_green", "snd_enemy_blue", "snd_enemy_boss", "snd_enemy_sentinel" })
+		foreach (string name in new[] { "bgm_menu", "bgm_regular_game", "bgm_boss_game", "snd_shoot", "snd_player_hit", "snd_enemy_red", "snd_enemy_green", "snd_enemy_blue", "snd_enemy_boss", "snd_enemy_sentinel" })
 		{
 			AudioStream? stream = GD.Load<AudioStream>($"res://assets/audio/{name}.mp3");
 			if (stream != null) _sounds[name] = stream;

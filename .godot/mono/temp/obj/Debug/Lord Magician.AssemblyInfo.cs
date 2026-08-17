@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Lord Magician")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8a425e8687da2458b6f5e3a952a11e08d0644025")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d98e74550ad3fcc9489b7c81811e9cfa67b7a97e")]
 [assembly: System.Reflection.AssemblyProductAttribute("Lord Magician")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Lord Magician")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
