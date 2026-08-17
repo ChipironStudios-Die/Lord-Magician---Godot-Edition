@@ -1,12 +1,13 @@
 9cad1ddce9e5a63143ba340c9520626b
-::res://::1786988059
-export_presets.cfg::TextFile::-1::1786972176::0::1::::<><><>0<>0<><>::
+::res://::1786991403
+export_presets.cfg::TextFile::-1::1786988094::0::1::::<><><>0<>0<><>::
 Main.tscn::PackedScene::8340090710575061661::1786559928::0::1::::<><><>0<>0<><>::uid://biw4efqfq1tyw::::res://scripts/GameMain.cs
 README.md::TextFile::-1::1786451070::0::1::::<><><>0<>0<><>::
 ::res://assets/::1786474666
-::res://assets/audio/::1786540096
-bgm_game.mp3::AudioStreamMP3::6197053154074247007::1786451070::1786451208::1::::<><><>0<>0<>59f12c0f57e1155f7e0589776ccaeab9<>res://.godot/imported/bgm_game.mp3-4475f199e1243cf6acffd0a19fb36fca.mp3str::
+::res://assets/audio/::1786991403
+bgm_boss_game.mp3::AudioStreamMP3::996163330782082159::1786991388::1786991404::1::::<><><>0<>0<>0b4df90246edf763d55d7c45d1e3273c<>res://.godot/imported/bgm_boss_game.mp3-ef1b092b33de9375c086f1e1f940680b.mp3str::
 bgm_menu.mp3::AudioStreamMP3::7513866141948075717::1786451070::1786451208::1::::<><><>0<>0<>e37b6bb3576c817a76ca35bb6db31bfa<>res://.godot/imported/bgm_menu.mp3-983f8c944c1c7c6d04f108caba851fad.mp3str::
+bgm_regular_game.mp3::AudioStreamMP3::6197053154074247007::1786451070::1786991379::1::::<><><>0<>0<>8a9dae95f6202efc6c46ec5a14fa5da8<>res://.godot/imported/bgm_regular_game.mp3-ea6d0afb835d7903471ac34991aaba2f.mp3str::
 snd_enemy_blue.mp3::AudioStreamMP3::1306594294615144783::1786451070::1786451208::1::::<><><>0<>0<>a6ef9225830e0ecdda81db272ed1414b<>res://.godot/imported/snd_enemy_blue.mp3-9419f74627b6ae85adcc96f57d79e360.mp3str::
 snd_enemy_boss.mp3::AudioStreamMP3::6471501901629421376::1786451070::1786451208::1::::<><><>0<>0<>18ffa531c1e6d4e1805d43861a5c6f92<>res://.godot/imported/snd_enemy_boss.mp3-4671381501e32e80805f270d37f69f26.mp3str::
 snd_enemy_green.mp3::AudioStreamMP3::3217319477395190115::1786451070::1786451208::1::::<><><>0<>0<>d82e24a054757684abd8115c3aef52be<>res://.godot/imported/snd_enemy_green.mp3-1d16695f32ad438886ccc1f266e2c34b.mp3str::
@@ -35,5 +36,3 @@ weapons.png::CompressedTexture2D::7175003704769554474::1786451070::1786451210::1
 ::res://scripts/::1786972176
 GameData.cs::CSharpScript::5326681533229255282::1786451070::0::1::::<><><>0<>0<><>::
 GameMain.cs::CSharpScript::2995115966935746818::1786972176::0::1::::<>Node2D<><>0<>0<><>::
-::res://shaders/::1786540096
-crt_overlay.gdshader::Shader::2504403259481227301::1786451070::0::1::::<><><>0<>0<><>::
