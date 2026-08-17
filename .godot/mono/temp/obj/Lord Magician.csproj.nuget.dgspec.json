@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\diego\\Documents\\Scripts de clase\\LordMagicianGodot\\Lord-Magician---Godot-Edition\\Lord Magician.csproj": {}
+    "C:\\Users\\AlumnoDiegoMartinRei\\Documents\\Lord-Magician---Godot-Edition\\Lord Magician.csproj": {}
   },
   "projects": {
-    "C:\\Users\\diego\\Documents\\Scripts de clase\\LordMagicianGodot\\Lord-Magician---Godot-Edition\\Lord Magician.csproj": {
+    "C:\\Users\\AlumnoDiegoMartinRei\\Documents\\Lord-Magician---Godot-Edition\\Lord Magician.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\diego\\Documents\\Scripts de clase\\LordMagicianGodot\\Lord-Magician---Godot-Edition\\Lord Magician.csproj",
+        "projectUniqueName": "C:\\Users\\AlumnoDiegoMartinRei\\Documents\\Lord-Magician---Godot-Edition\\Lord Magician.csproj",
         "projectName": "Lord Magician",
-        "projectPath": "C:\\Users\\diego\\Documents\\Scripts de clase\\LordMagicianGodot\\Lord-Magician---Godot-Edition\\Lord Magician.csproj",
-        "packagesPath": "C:\\Users\\diego\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\diego\\Documents\\Scripts de clase\\LordMagicianGodot\\Lord-Magician---Godot-Edition\\.godot\\mono\\temp\\obj\\",
+        "projectPath": "C:\\Users\\AlumnoDiegoMartinRei\\Documents\\Lord-Magician---Godot-Edition\\Lord Magician.csproj",
+        "packagesPath": "C:\\Users\\AlumnoDiegoMartinRei\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\AlumnoDiegoMartinRei\\Documents\\Lord-Magician---Godot-Edition\\.godot\\mono\\temp\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\diego\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\AlumnoDiegoMartinRei\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -56,6 +56,11 @@
               "target": "Package",
               "version": "[4.7.1, )",
               "autoReferenced": true
+            },
+            "GodotSharpEditor": {
+              "target": "Package",
+              "version": "[4.7.1, )",
+              "autoReferenced": true
             }
           },
           "imports": [
@@ -75,23 +80,11 @@
               "version": "[8.0.30, 8.0.30]"
             },
             {
-              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
-              "version": "[8.0.30, 8.0.30]"
-            },
-            {
               "name": "Microsoft.NETCore.App.Ref",
               "version": "[8.0.30, 8.0.30]"
             },
             {
-              "name": "Microsoft.NETCore.App.Runtime.win-x64",
-              "version": "[8.0.30, 8.0.30]"
-            },
-            {
               "name": "Microsoft.WindowsDesktop.App.Ref",
-              "version": "[8.0.30, 8.0.30]"
-            },
-            {
-              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
               "version": "[8.0.30, 8.0.30]"
             }
           ],
@@ -101,11 +94,6 @@
             }
           },
           "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.303/PortableRuntimeIdentifierGraph.json"
-        }
-      },
-      "runtimes": {
-        "win-x64": {
-          "#import": []
         }
       }
     }
