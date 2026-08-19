@@ -1700,7 +1700,8 @@ public partial class GameMain : Node2D
 		_touchMove = Vector2.Zero;
 		if (phase == GamePhase.Shop) { _shopScroll = 0f; _shopFocusIndex = 0; _shopPointerActive = false; }
 		if (phase == GamePhase.MainMenu) PlayMusic("bgm_menu");
-		if ((phase == GamePhase.Playing) && (_levelIndex + 1 == 5 || _levelIndex + 1 == 8)) PlayMusic("bgm_boss_game");
+		if ((phase == GamePhase.Playing) && _levelIndex + 1 == 5) PlayMusic("bgm_boss5_game");
+		if ((phase == GamePhase.Playing) && _levelIndex + 1 == 8) PlayMusic("bgm_boss8_game")
 		if ((phase == GamePhase.Playing) && (_levelIndex + 1 != 5 && _levelIndex + 1 != 8)) PlayMusic("bgm_regular_game");
 
 		// En PC, el ratón no se usa para apuntar (el disparo sigue _player.Angle),

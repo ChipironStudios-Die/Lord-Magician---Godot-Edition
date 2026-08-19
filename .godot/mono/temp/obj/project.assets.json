@@ -20,24 +20,19 @@
             "related": ".xml"
           }
         }
-      }
-    },
-    "net8.0/win-x64": {
-      "Godot.SourceGenerators/4.7.1": {
-        "type": "package",
-        "build": {
-          "build/Godot.SourceGenerators.props": {}
-        }
       },
-      "GodotSharp/4.7.1": {
+      "GodotSharpEditor/4.7.1": {
         "type": "package",
+        "dependencies": {
+          "GodotSharp": "4.7.1"
+        },
         "compile": {
-          "lib/net8.0/GodotSharp.dll": {
+          "lib/net8.0/GodotSharpEditor.dll": {
             "related": ".xml"
           }
         },
         "runtime": {
-          "lib/net8.0/GodotSharp.dll": {
+          "lib/net8.0/GodotSharpEditor.dll": {
             "related": ".xml"
           }
         }
@@ -70,12 +65,26 @@
         "lib/net8.0/GodotSharp.dll",
         "lib/net8.0/GodotSharp.xml"
       ]
+    },
+    "GodotSharpEditor/4.7.1": {
+      "sha512": "MAX9wPgjX9BM+EOMxuF++mWKdvO2y0ZiEAfv6D68HGseQc8mX//yc7QrJizXSJ4ii1nh3krXZSyIJ77nmjOgYA==",
+      "type": "package",
+      "path": "godotsharpeditor/4.7.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "godotsharpeditor.4.7.1.nupkg.sha512",
+        "godotsharpeditor.nuspec",
+        "lib/net8.0/GodotSharpEditor.dll",
+        "lib/net8.0/GodotSharpEditor.xml"
+      ]
     }
   },
   "projectFileDependencyGroups": {
     "net8.0": [
       "Godot.SourceGenerators >= 4.7.1",
-      "GodotSharp >= 4.7.1"
+      "GodotSharp >= 4.7.1",
+      "GodotSharpEditor >= 4.7.1"
     ]
   },
   "packageFolders": {
@@ -133,6 +142,11 @@
             "target": "Package",
             "version": "[4.7.1, )",
             "autoReferenced": true
+          },
+          "GodotSharpEditor": {
+            "target": "Package",
+            "version": "[4.7.1, )",
+            "autoReferenced": true
           }
         },
         "imports": [
@@ -152,23 +166,11 @@
             "version": "[8.0.30, 8.0.30]"
           },
           {
-            "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
-            "version": "[8.0.30, 8.0.30]"
-          },
-          {
             "name": "Microsoft.NETCore.App.Ref",
             "version": "[8.0.30, 8.0.30]"
           },
           {
-            "name": "Microsoft.NETCore.App.Runtime.win-x64",
-            "version": "[8.0.30, 8.0.30]"
-          },
-          {
             "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[8.0.30, 8.0.30]"
-          },
-          {
-            "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
             "version": "[8.0.30, 8.0.30]"
           }
         ],
@@ -178,11 +180,6 @@
           }
         },
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.303/PortableRuntimeIdentifierGraph.json"
-      }
-    },
-    "runtimes": {
-      "win-x64": {
-        "#import": []
       }
     }
   }
