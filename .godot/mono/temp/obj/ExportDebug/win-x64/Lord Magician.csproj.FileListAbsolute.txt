@@ -199,7 +199,6 @@ C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\obj
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\ExportDebug\win-x64\Lord Magician.deps.json
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\ExportDebug\win-x64\Lord Magician.runtimeconfig.json
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\ExportDebug\win-x64\Lord Magician.dll
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\ExportDebug\win-x64\Lord Magician.pdb
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\ExportDebug\win-x64\GodotSharp.dll
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\ExportDebug\win-x64\Microsoft.CSharp.dll
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\ExportDebug\win-x64\Microsoft.VisualBasic.Core.dll
@@ -379,7 +378,6 @@ C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mon
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\ExportDebug\win-x64\hostfxr.dll
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\ExportDebug\win-x64\hostpolicy.dll
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\ExportDebug\win-x64\mscordaccore.dll
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\ExportDebug\win-x64\mscordaccore_amd64_amd64_8.0.2926.32403.dll
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\ExportDebug\win-x64\mscordbi.dll
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\ExportDebug\win-x64\mscorrc.dll
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\ExportDebug\win-x64\msquic.dll
@@ -388,11 +386,9 @@ C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mon
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\ExportDebug\win-x64\Lord Magician.AssemblyInfoInputs.cache
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\ExportDebug\win-x64\Lord Magician.AssemblyInfo.cs
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\ExportDebug\win-x64\Lord Magician.csproj.CoreCompileInputs.cache
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\ExportDebug\win-x64\Lord Magician.sourcelink.json
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\ExportDebug\win-x64\Lord Mag.A84D7178.Up2Date
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\ExportDebug\win-x64\Lord Magician.dll
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\ExportDebug\win-x64\refint\Lord Magician.dll
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\ExportDebug\win-x64\Lord Magician.pdb
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\ExportDebug\win-x64\Lord Magician.genruntimeconfig.cache
 C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\ExportDebug\win-x64\ref\Lord Magician.dll
 C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\ExportDebug\win-x64\Lord Magician.deps.json
@@ -594,3 +590,4 @@ C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godo
 C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\ExportDebug\win-x64\Lord Magician.pdb
 C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\ExportDebug\win-x64\Lord Magician.genruntimeconfig.cache
 C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\ExportDebug\win-x64\ref\Lord Magician.dll
+C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\ExportDebug\win-x64\mscordaccore_amd64_amd64_8.0.3026.36720.dll

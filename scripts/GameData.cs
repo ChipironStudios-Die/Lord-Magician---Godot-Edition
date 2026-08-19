@@ -9,7 +9,7 @@ public enum ProjectileOwner { Player, Enemy }
 public enum MissionType { Eliminate, Escape, Collect }
 public enum Difficulty { Easy, Normal, Hard }
 public enum GraphicsQuality { Performance, Standard, HighDefinition }
-public enum GamePhase { MainMenu, Playing, LevelClear, Shop, GameOver, Finished, Settings, Paused }
+public enum GamePhase { MainMenu, Playing, LevelClear, Shop, GameOver, Finished, Settings, Paused, MultiplayerMenu }
 
 public readonly record struct WeaponDef(string Name, float Damage, float ManaCost, float Cooldown, int Cost);
 public readonly record struct ArmorDef(string Name, float Defense, int Cost);

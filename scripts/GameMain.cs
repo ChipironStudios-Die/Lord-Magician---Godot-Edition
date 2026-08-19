@@ -17,6 +17,21 @@ public partial class GameMain : Node2D
 
 	private readonly Random _random = new();
 	private readonly PlayerState _player = new();
+
+	// --- Multijugador (co-op LAN/online por IP directa, vía ENet) ---
+	private const int MultiplayerPort = 8910;
+	private ENetMultiplayerPeer? _peer;
+	private bool _multiplayerActive;
+	private string _networkStatus = "";
+	private string _joinIpText = "127.0.0.1";
+	private bool _joinFieldActive;
+	private float _networkSendTimer;
+	private readonly Dictionary<long, RemotePlayerState> _remotePlayers = new();
+
+	// En una partida multijugador, solo el anfitrión simula a los enemigos (IA,
+	// movimiento, ataques) y difunde su estado; los clientes solo lo reciben y
+	// lo dibujan. En un solo jugador esto siempre es true (nada cambia).
+	private bool IsHostAuthority => !_multiplayerActive || (Multiplayer.HasMultiplayerPeer() && Multiplayer.IsServer());
 	private readonly List<Enemy> _enemies = new();
 	private readonly List<Projectile> _projectiles = new();
 	private readonly List<WorldItem> _items = new();
@@ -275,6 +290,7 @@ public partial class GameMain : Node2D
 			case GamePhase.GameOver: DrawGameOver(size); break;
 			case GamePhase.Paused: DrawPause(size); break;
 			case GamePhase.Finished: DrawVictory(size); break;
+			case GamePhase.MultiplayerMenu: DrawMultiplayerMenu(size); break;
 		}
 	}
 
@@ -283,6 +299,17 @@ public partial class GameMain : Node2D
 		LevelDef level = GameData.Levels[_levelIndex];
 		int[][] map = level.Map;
 		_frameTick += 1f;
+
+		if (_multiplayerActive)
+		{
+			_networkSendTimer -= dt;
+			if (_networkSendTimer <= 0f)
+			{
+				_networkSendTimer = 0.1f;
+				BroadcastLocalPlayerState();
+				if (IsHostAuthority) BroadcastEnemySnapshot();
+			}
+		}
 
 		for (int i = _particles.Count - 1; i >= 0; i--)
 		{
@@ -344,7 +371,7 @@ public partial class GameMain : Node2D
 		float manaMultiplier = _difficulty == Difficulty.Hard ? 0.7f : 1f;
 		_player.Mana = Mathf.Min(_player.MaxMana, _player.Mana + 12f * dt * manaMultiplier);
 		UpdateProjectiles(dt, map);
-		UpdateEnemies(dt, map);
+		if (IsHostAuthority) UpdateEnemies(dt, map);
 
 		if (_player.Health <= 0f)
 		{
@@ -385,6 +412,8 @@ public partial class GameMain : Node2D
 					dead = true;
 					SpawnExplosion(projectile.Position, projectile.Color, 8);
 					PlaySfx(EnemySound(enemy.Type));
+					if (_multiplayerActive && !IsHostAuthority)
+						RpcId(1, MethodName.RpcRequestEnemyHit, _enemies.IndexOf(enemy), projectile.Damage);
 					if (enemy.Hp <= 0f && !enemy.Rewarded)
 					{
 						enemy.Rewarded = true;
@@ -667,6 +696,9 @@ public partial class GameMain : Node2D
 			sprites.Add(new WorldSprite(projectile.Position, SpriteKind.Projectile, projectile, projectile.Color, 0.25f));
 		foreach (WorldItem item in _items)
 			sprites.Add(new WorldSprite(item.Position, SpriteKind.Item, item, item.Color, 0.4f));
+		if (_multiplayerActive)
+			foreach (RemotePlayerState remote in _remotePlayers.Values)
+				sprites.Add(new WorldSprite(remote.Position, SpriteKind.RemotePlayer, remote, Color.FromHtml("29b6f6"), 1.1f));
 		sprites.Sort((left, right) => right.Position.DistanceSquaredTo(_player.Position).CompareTo(left.Position.DistanceSquaredTo(_player.Position)));
 
 		foreach (WorldSprite sprite in sprites)
@@ -725,6 +757,21 @@ public partial class GameMain : Node2D
 			{
 				DrawCircle(new Vector2(screenX + shake.X, bottom - spriteHeight * 0.5f + shake.Y), spriteHeight * 0.3f, sprite.Color);
 			}
+			return;
+		}
+
+		if (sprite.Kind == SpriteKind.RemotePlayer)
+		{
+			RemotePlayerState remote = (RemotePlayerState)sprite.Source;
+			Vector2 center = new(screenX + shake.X, bottom - spriteHeight * 0.5f + shake.Y);
+			DrawCircle(center, spriteHeight * 0.28f, sprite.Color);
+			DrawCircle(center, spriteHeight * 0.28f, Colors.White, false, 2f);
+			float barWidth = spriteHeight * 0.6f;
+			Vector2 barPos = center + new Vector2(-barWidth * 0.5f, -spriteHeight * 0.62f);
+			DrawRect(new Rect2(barPos, new Vector2(barWidth, 4f)), new Color(0f, 0f, 0f, 0.6f));
+			float healthT = remote.MaxHealth > 0f ? Mathf.Clamp(remote.Health / remote.MaxHealth, 0f, 1f) : 0f;
+			DrawRect(new Rect2(barPos, new Vector2(barWidth * healthT, 4f)), Color.FromHtml("ef5350"));
+			DrawText(remote.Name, new Vector2(center.X - barWidth * 0.6f, barPos.Y - 4f), 12, Colors.White);
 			return;
 		}
 
@@ -892,6 +939,9 @@ public partial class GameMain : Node2D
 			if (enemy.Alive) DrawCircle(rect.Position + new Vector2(enemy.Position.X * cell.X, enemy.Position.Y * cell.Y), 2f, Colors.Red);
 		foreach (WorldItem item in _items)
 			DrawCircle(rect.Position + new Vector2(item.Position.X * cell.X, item.Position.Y * cell.Y), 1.5f, item.Color);
+		if (_multiplayerActive)
+			foreach (RemotePlayerState remote in _remotePlayers.Values)
+				DrawCircle(rect.Position + new Vector2(remote.Position.X * cell.X, remote.Position.Y * cell.Y), 2.4f, Color.FromHtml("29b6f6"));
 
 		Vector2 player = rect.Position + new Vector2(_player.Position.X * cell.X, _player.Position.Y * cell.Y);
 		Vector2 look = new(Mathf.Cos(_player.Angle), Mathf.Sin(_player.Angle));
@@ -965,11 +1015,38 @@ public partial class GameMain : Node2D
 
 		float y = size.Y * 0.58f;
 		DrawButton(new Rect2(size.X * 0.5f - 145f, y, 290f, 54f), "COMENZAR", UiAction.Start, _menuIndex == 0);
-		DrawButton(new Rect2(size.X * 0.5f - 145f, y + 70f, 290f, 54f), "AJUSTES", UiAction.OpenSettings, _menuIndex == 1);
+		DrawButton(new Rect2(size.X * 0.5f - 145f, y + 70f, 290f, 54f), "MULTIJUGADOR", UiAction.OpenMultiplayer, _menuIndex == 1);
+		DrawButton(new Rect2(size.X * 0.5f - 145f, y + 140f, 290f, 54f), "AJUSTES", UiAction.OpenSettings, _menuIndex == 2);
 		DrawCenteredText("WASD/mando para moverte · Ratón/táctil para mirar · Espacio/R2 para disparar", size.Y - 32f, 14, new Color(1f, 1f, 1f, 0.65f));
 	}
 
-	private void DrawSettings(Vector2 size)
+	private void DrawMultiplayerMenu(Vector2 size)
+	{
+		DrawCenteredText("MULTIJUGADOR", 90f, 34, Colors.Gold);
+		DrawCenteredText("Cooperativo — hasta 8 jugadores en la misma partida", 126f, 14, new Color(1f, 1f, 1f, 0.65f));
+		if (!string.IsNullOrEmpty(_networkStatus)) DrawCenteredText(_networkStatus, 152f, 15, Color.FromHtml("f2c94c"));
+
+		float x = size.X * 0.5f - 170f;
+		DrawButton(new Rect2(x, 190f, 340f, 52f), "ALOJAR PARTIDA", UiAction.MpHost, _menuIndex == 0, !_multiplayerActive);
+
+		DrawText("IP a la que unirse:", new Vector2(x, 268f), 15, new Color(1f, 1f, 1f, 0.75f));
+		Rect2 ipField = new(x, 278f, 340f, 46f);
+		DrawRect(ipField, new Color(1f, 1f, 1f, 0.08f));
+		DrawRect(ipField, _joinFieldActive ? Colors.White : new Color(1f, 1f, 1f, 0.3f), false, 2f);
+		DrawString(_font, new Vector2(ipField.Position.X + 14f, ipField.Position.Y + 30f), _joinIpText + (_joinFieldActive ? "_" : ""), HorizontalAlignment.Left, ipField.Size.X - 28f, 18, Colors.White);
+		_uiHits.Add(new UiHit(UiAction.MpFocusIpField, ipField));
+
+		DrawButton(new Rect2(x, 340f, 340f, 52f), "UNIRSE", UiAction.MpJoin, _menuIndex == 1, !_multiplayerActive);
+		DrawButton(new Rect2(x, 408f, 340f, 48f), _multiplayerActive ? "DESCONECTAR Y VOLVER" : "VOLVER", UiAction.MpBack, _menuIndex == 2);
+
+		if (_multiplayerActive)
+		{
+			DrawCenteredText($"Jugadores conectados: {_remotePlayers.Count + 1}", 478f, 15, Colors.White);
+			if (Multiplayer.HasMultiplayerPeer() && Multiplayer.IsServer())
+				DrawCenteredText("Cuando estéis todos, pulsa COMENZAR en el menú principal de cualquier jugador para que el anfitrión inicie la partida.", 502f, 13, new Color(1f, 1f, 1f, 0.6f));
+		}
+	}
+
 	{
 		DrawCenteredText("AJUSTES", 70f, 38, Colors.White);
 
@@ -1470,11 +1547,12 @@ public partial class GameMain : Node2D
 		if (_phase == GamePhase.Shop) { MoveShopFocus(direction); return; }
 		int count = _phase switch
 		{
-			GamePhase.MainMenu => 2,
+			GamePhase.MainMenu => 3,
 			GamePhase.Settings => 6,
 			GamePhase.LevelClear => 2,
 			GamePhase.GameOver => 2,
 			GamePhase.Paused => 2,
+			GamePhase.MultiplayerMenu => 3,
 			_ => 1
 		};
 		_menuIndex = Mathf.PosMod(_menuIndex + direction, count);
@@ -1485,12 +1563,13 @@ public partial class GameMain : Node2D
 		if (_phase == GamePhase.Shop) { ConfirmShopFocus(); return; }
 		UiAction action = _phase switch
 		{
-			GamePhase.MainMenu => _menuIndex == 0 ? UiAction.Start : UiAction.OpenSettings,
+			GamePhase.MainMenu => _menuIndex switch { 0 => UiAction.Start, 1 => UiAction.OpenMultiplayer, _ => UiAction.OpenSettings },
 			GamePhase.Settings => _menuIndex == 5 ? UiAction.SettingsBack : UiAction.None,
 			GamePhase.LevelClear => _menuIndex == 0 ? UiAction.LevelShop : UiAction.LevelContinue,
 			GamePhase.GameOver => _menuIndex == 0 ? UiAction.Retry : UiAction.GameOverMenu,
 			GamePhase.Paused => _menuIndex == 0 ? UiAction.Resume : UiAction.PauseQuit,
 			GamePhase.Finished => UiAction.VictoryMenu,
+			GamePhase.MultiplayerMenu => _menuIndex switch { 0 => UiAction.MpHost, 1 => UiAction.MpJoin, _ => UiAction.MpBack },
 			_ => UiAction.None
 		};
 		HandleUiAction(action);
@@ -1511,8 +1590,16 @@ public partial class GameMain : Node2D
 	{
 		switch (action)
 		{
-			case UiAction.Start: LoadLevel(0); break;
+			case UiAction.Start:
+				LoadLevel(0);
+				if (_multiplayerActive && Multiplayer.HasMultiplayerPeer() && Multiplayer.IsServer()) Rpc(MethodName.RpcStartLevel, 0);
+				break;
 			case UiAction.OpenSettings: SetPhase(GamePhase.Settings); break;
+			case UiAction.OpenMultiplayer: _networkStatus = ""; SetPhase(GamePhase.MultiplayerMenu); break;
+			case UiAction.MpHost: StartMultiplayerHost(); break;
+			case UiAction.MpJoin: StartMultiplayerClient(_joinIpText); break;
+			case UiAction.MpBack: StopMultiplayer(); SetPhase(GamePhase.MainMenu); break;
+			case UiAction.MpFocusIpField: _joinFieldActive = true; break;
 			case UiAction.SettingsBack: SetPhase(GamePhase.MainMenu); break;
 			case UiAction.SetDifficultyEasy: _difficulty = Difficulty.Easy; break;
 			case UiAction.SetDifficultyNormal: _difficulty = Difficulty.Normal; break;
@@ -1623,6 +1710,173 @@ public partial class GameMain : Node2D
 		// movimiento aunque el cursor "quiera" salirse de la vista de juego.
 		// En menús se vuelve a mostrar para poder pulsar los botones.
 		Input.MouseMode = phase == GamePhase.Playing ? Input.MouseModeEnum.Captured : Input.MouseModeEnum.Visible;
+	}
+
+	// =====================================================================
+	// MULTIJUGADOR
+	// -----------------------------------------------------------------------
+	// Cooperativo por IP directa usando el ENetMultiplayerPeer de Godot (todos
+	// exploran/pelean en el mismo nivel). El anfitrión también juega como un
+	// peer más. AVISO: de momento la posición/salud de cada jugador remoto es
+	// la que ESE jugador dice tener — no hay validación en el host, así que no
+	// es a prueba de trampas. Los enemigos, objetos y la tienda siguen siendo
+	// locales a cada cliente (no están sincronizados todavía); ver el mensaje
+	// en el chat para el porqué y los siguientes pasos.
+	// =====================================================================
+
+	private void StartMultiplayerHost()
+	{
+		if (_multiplayerActive) return;
+		_peer = new ENetMultiplayerPeer();
+		Error err = _peer.CreateServer(MultiplayerPort, 8);
+		if (err != Error.Ok)
+		{
+			_networkStatus = $"No se pudo alojar (error: {err}).";
+			_peer = null;
+			return;
+		}
+		Multiplayer.MultiplayerPeer = _peer;
+		_multiplayerActive = true;
+		_networkStatus = "Partida alojada. Esperando jugadores...";
+		Multiplayer.PeerConnected += OnPeerConnected;
+		Multiplayer.PeerDisconnected += OnPeerDisconnected;
+	}
+
+	private void StartMultiplayerClient(string ip)
+	{
+		if (_multiplayerActive) return;
+		_peer = new ENetMultiplayerPeer();
+		Error err = _peer.CreateClient(ip, MultiplayerPort);
+		if (err != Error.Ok)
+		{
+			_networkStatus = $"No se pudo conectar (error: {err}).";
+			_peer = null;
+			return;
+		}
+		Multiplayer.MultiplayerPeer = _peer;
+		_multiplayerActive = true;
+		_networkStatus = "Conectando...";
+		Multiplayer.ConnectedToServer += OnConnectedToServer;
+		Multiplayer.ConnectionFailed += OnConnectionFailed;
+		Multiplayer.PeerConnected += OnPeerConnected;
+		Multiplayer.PeerDisconnected += OnPeerDisconnected;
+	}
+
+	private void StopMultiplayer()
+	{
+		if (_peer != null)
+		{
+			Multiplayer.PeerConnected -= OnPeerConnected;
+			Multiplayer.PeerDisconnected -= OnPeerDisconnected;
+			Multiplayer.ConnectedToServer -= OnConnectedToServer;
+			Multiplayer.ConnectionFailed -= OnConnectionFailed;
+			_peer.Close();
+			Multiplayer.MultiplayerPeer = null;
+			_peer = null;
+		}
+		_multiplayerActive = false;
+		_remotePlayers.Clear();
+	}
+
+	private void OnConnectedToServer()
+	{
+		_networkStatus = "Conectado. Vuelve al menú principal y pulsa COMENZAR.";
+	}
+
+	private void OnConnectionFailed()
+	{
+		_networkStatus = "No se pudo conectar — revisa la IP y el puerto (8910).";
+		_multiplayerActive = false;
+		_peer = null;
+	}
+
+	private void OnPeerConnected(long id)
+	{
+		_remotePlayers[id] = new RemotePlayerState { Name = $"Jugador {id}" };
+	}
+
+	private void OnPeerDisconnected(long id)
+	{
+		_remotePlayers.Remove(id);
+	}
+
+	// Se llama periódicamente desde UpdateGame mientras hay partida multijugador
+	// activa, para difundir la posición/ángulo/vida propios a los demás peers.
+	private void BroadcastLocalPlayerState()
+	{
+		if (!_multiplayerActive || !Multiplayer.HasMultiplayerPeer()) return;
+		Rpc(MethodName.RpcReceivePlayerState, _player.Position.X, _player.Position.Y, _player.Angle, _player.Health, _player.MaxHealth);
+	}
+
+	[Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+	private void RpcStartLevel(int levelIndex)
+	{
+		LoadLevel(levelIndex);
+	}
+
+	[Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Unreliable)]
+	private void RpcReceivePlayerState(float x, float y, float angle, float health, float maxHealth)
+	{
+		long sender = Multiplayer.GetRemoteSenderId();
+		if (!_remotePlayers.TryGetValue(sender, out RemotePlayerState? remote))
+		{
+			remote = new RemotePlayerState { Name = $"Jugador {sender}" };
+			_remotePlayers[sender] = remote;
+		}
+		remote.Position = new Vector2(x, y);
+		remote.Angle = angle;
+		remote.Health = health;
+		remote.MaxHealth = maxHealth;
+	}
+
+	// El anfitrión manda un único RPC con todos los enemigos vivos, en vez de uno
+	// por enemigo: (índice, x, y, hp, frameDeAnimación) por cada uno, todo seguido
+	// en un solo array de floats.
+	private void BroadcastEnemySnapshot()
+	{
+		if (!Multiplayer.HasMultiplayerPeer()) return;
+		float[] data = new float[_enemies.Count * 5];
+		for (int i = 0; i < _enemies.Count; i++)
+		{
+			Enemy enemy = _enemies[i];
+			int b = i * 5;
+			data[b] = i;
+			data[b + 1] = enemy.Position.X;
+			data[b + 2] = enemy.Position.Y;
+			data[b + 3] = enemy.Hp;
+			data[b + 4] = enemy.AnimationFrame;
+		}
+		Rpc(MethodName.RpcSyncEnemies, data);
+	}
+
+	[Rpc(MultiplayerApi.RpcMode.Authority, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Unreliable)]
+	private void RpcSyncEnemies(float[] data)
+	{
+		// Los clientes no simulan enemigos: solo pintan lo último que dijo el anfitrión.
+		for (int b = 0; b + 4 < data.Length; b += 5)
+		{
+			int index = (int)data[b];
+			if (index < 0 || index >= _enemies.Count) continue;
+			Enemy enemy = _enemies[index];
+			enemy.Position = new Vector2(data[b + 1], data[b + 2]);
+			enemy.Hp = data[b + 3];
+			enemy.AnimationFrame = (int)data[b + 4];
+		}
+	}
+
+	// Un cliente que golpea a un enemigo ya se lo aplica de forma local (para
+	// feedback instantáneo, igual que en un jugador), y además avisa al
+	// anfitrión para que su copia — la que se difunde a todos — también lo
+	// refleje. El anfitrión NO concede recompensa aquí (ya se la llevó quien
+	// disparó); solo mantiene su simulación al día.
+	[Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = false, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+	private void RpcRequestEnemyHit(int enemyIndex, float damage)
+	{
+		if (!IsHostAuthority || enemyIndex < 0 || enemyIndex >= _enemies.Count) return;
+		Enemy enemy = _enemies[enemyIndex];
+		if (!enemy.Alive) return;
+		enemy.Hp -= damage;
+		enemy.HitFlash = 0.15f;
 	}
 
 	private void LoadAudio()
@@ -1736,23 +1990,36 @@ public partial class GameMain : Node2D
 		return stick.Normalized() * rescaled;
 	}
 
-	private enum SpriteKind { Enemy, Projectile, Item }
+	private enum SpriteKind { Enemy, Projectile, Item, RemotePlayer }
 	private enum ItemType { PotionRed, PotionBlue, Scroll }
 	private enum ShopEntryKind { Potion, Weapon, Armor, Accessory, Shield }
 	private enum UiAction
 	{
 		None,
-		Start, OpenSettings,
+		Start, OpenSettings, OpenMultiplayer,
 		SetDifficultyEasy, SetDifficultyNormal, SetDifficultyHard,
 		SetQualityPerformance, SetQualityStandard, SetQualityHighDef,
 		SetSensitivity, SetMusicVolume, SetFxVolume, SettingsBack,
 		LevelShop, LevelContinue, ShopContinue,
+		MpHost, MpJoin, MpBack, MpFocusIpField,
 		Retry, GameOverMenu, Resume, PauseQuit, VictoryMenu
 	}
 
 	private readonly record struct UiHit(UiAction Action, Rect2 Rect);
 	private readonly record struct ShopEntry(string Label, int Cost, ShopEntryKind Kind, int Index);
 	private readonly record struct WorldSprite(Vector2 Position, SpriteKind Kind, object Source, Color Color, float Scale);
+
+	// Estado replicado de un jugador remoto: solo lo que hace falta para dibujarlo
+	// en el mundo y en el minimapa. Nada de esto se valida en el host todavía
+	// (ver aviso en el chat) — es la posición que cada cliente dice tener.
+	private sealed class RemotePlayerState
+	{
+		public Vector2 Position;
+		public float Angle;
+		public float Health = 100f;
+		public float MaxHealth = 100f;
+		public string Name = "Jugador";
+	}
 
 	private sealed class PlayerState
 	{
