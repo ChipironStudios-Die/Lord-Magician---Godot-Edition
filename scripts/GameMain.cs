@@ -783,6 +783,7 @@ public partial class GameMain : Node2D
 			if (transformY >= _zBuffer[rayIndex]) return;
 			enemy.PlayerVisible = true;
 			DrawCircle(new Vector2(screenX + shake.X, bottom - spriteHeight * 0.5f + shake.Y), spriteHeight * 0.3f, sprite.Color);
+			DrawEnemyHealthBar(enemy, screenX, bottom, spriteHeight, shake);
 			return;
 		}
 
@@ -794,7 +795,26 @@ public partial class GameMain : Node2D
 
 		bool anyVisible = DrawTextureColumnsClipped(enemyTexture, destinationEnemy, source, size, transformY);
 		enemy.PlayerVisible = anyVisible;
-		if (anyVisible && enemy.HitFlash > 0f) DrawRect(destinationEnemy, new Color(1f, 1f, 1f, 0.5f));
+		if (anyVisible)
+		{
+			if (enemy.HitFlash > 0f) DrawRect(destinationEnemy, new Color(1f, 1f, 1f, 0.5f));
+			DrawEnemyHealthBar(enemy, screenX, bottom, spriteHeight, shake);
+		}
+	}
+
+	/// <summary>
+	/// Barra de vida flotante sobre un enemigo, con el mismo estilo que la de los
+	/// jugadores remotos: fondo semitransparente y relleno rojo proporcional a Hp/MaxHp.
+	/// </summary>
+	private void DrawEnemyHealthBar(Enemy enemy, float screenX, float bottom, float spriteHeight, Vector2 shake)
+	{
+		if (enemy.MaxHp <= 0f) return;
+		float barWidth = spriteHeight * 0.5f;
+		Vector2 center = new(screenX + shake.X, bottom - spriteHeight * 0.5f + shake.Y);
+		Vector2 barPos = center + new Vector2(-barWidth * 0.5f, -spriteHeight * 0.62f);
+		DrawRect(new Rect2(barPos, new Vector2(barWidth, 4f)), new Color(0f, 0f, 0f, 0.6f));
+		float healthT = Mathf.Clamp(enemy.Hp / enemy.MaxHp, 0f, 1f);
+		DrawRect(new Rect2(barPos, new Vector2(barWidth * healthT, 4f)), Color.FromHtml("ef5350"));
 	}
 
 	/// <summary>
@@ -2056,6 +2076,7 @@ public partial class GameMain : Node2D
 	{
 		public Vector2 Position;
 		public float Hp;
+		public float MaxHp;
 		public EnemyType Type;
 		public float Speed;
 		public int ExpReward;
@@ -2072,7 +2093,7 @@ public partial class GameMain : Node2D
 
 		public Enemy(Vector2 position, float hp, EnemyType type, float speed, int expReward, int goldMin, int goldMax)
 		{
-			Position = position; Hp = hp; Type = type; Speed = speed; ExpReward = expReward; GoldMin = goldMin; GoldMax = goldMax;
+			Position = position; Hp = hp; MaxHp = hp; Type = type; Speed = speed; ExpReward = expReward; GoldMin = goldMin; GoldMax = goldMax;
 		}
 	}
 
