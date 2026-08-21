@@ -1,10 +1,10 @@
 9cad1ddce9e5a63143ba340c9520626b
-::res://::1787160180
+::res://::1787322964
 export_presets.cfg::TextFile::-1::1787144980::0::1::::<><><>0<>0<><>::
 Main.tscn::PackedScene::8340090710575061661::1787144980::0::1::::<><><>0<>0<><>::uid://biw4efqfq1tyw::::res://scripts/GameMain.cs
 README.md::TextFile::-1::1787144980::0::1::::<><><>0<>0<><>::
 ::res://assets/::1786474666
-::res://assets/audio/::1787160312
+::res://assets/audio/::1787160313
 bgm_boss5_game.mp3::AudioStreamMP3::996163330782082159::1787144979::1787160181::1::::<><><>0<>0<>7ae0995aa9fd2fce9d617766261a0a4d<>res://.godot/imported/bgm_boss5_game.mp3-e56cdde7a7ed4ffacd24800e239d7323.mp3str::
 bgm_boss8_game.mp3::AudioStreamMP3::2458385460895768848::1787160222::1787160223::1::::<><><>0<>0<>e32f70436f0fb683423a710c654e5c2d<>res://.godot/imported/bgm_boss8_game.mp3-ab5de06e5d58f418a3365111dbf71958.mp3str::
 bgm_finalboss_game.mp3::AudioStreamMP3::5127834197959009881::1787160312::1787160313::1::::<><><>0<>0<>77c69f52dde3d67c44f2e381d7c33f7a<>res://.godot/imported/bgm_finalboss_game.mp3-6ccecc9e61df5eacf7c11abbf9e0d11c.mp3str::
@@ -35,6 +35,6 @@ red_enemy_spritesheet.png::CompressedTexture2D::7443231087991229886::1787144979:
 red_potion.png::CompressedTexture2D::4222604384986155508::1787144980::1787144980::1::::<><><>0<>0<>9b0b152bf974ee1684e4cd97ec1ffb28<>res://.godot/imported/red_potion.png-17120717aa47764eb88d81114b706802.ctex::
 sentinel_spritesheet.png::CompressedTexture2D::9196470025369516041::1787144979::1787144979::1::::<><><>0<>0<>ac1aa08824d4de1aabd5ec963536d610<>res://.godot/imported/sentinel_spritesheet.png-ef72643f132b8dcfcb4e5f65dc118aee.ctex::
 weapons.png::CompressedTexture2D::7175003704769554474::1787144979::1787144980::1::::<><><>0<>0<>1fe03cd8f1018f50861121dc04f554d0<>res://.godot/imported/weapons.png-27a166622c698fac517fe46c631961ee.ctex::
-::res://scripts/::1787144980
-GameData.cs::CSharpScript::5326681533229255282::1787144980::0::1::::<><><>0<>0<><>::
-GameMain.cs::CSharpScript::2995115966935746818::1787144980::0::1::::<>Node2D<><>0<>0<><>::
+::res://scripts/::1787322902
+GameData.cs::CSharpScript::5326681533229255282::1787320226::0::1::::<><><>0<>0<><>::
+GameMain.cs::CSharpScript::2995115966935746818::1787322797::0::1::::<>Node2D<><>0<>0<><>::

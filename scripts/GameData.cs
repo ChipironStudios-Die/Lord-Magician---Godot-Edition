@@ -112,7 +112,7 @@ public static class GameData
 		}),
 		new("Nivel 5 - El Trono Sangriento", Decode(Map7), new Vector2(8f, 14.5f), new[]
 		{
-			new EnemySpawn(new Vector2(8f, 6f), 600f, EnemyType.Boss, 1.0f, 1000, 500, 1000)
+			new EnemySpawn(new Vector2(8f, 6f), 4500f, EnemyType.Boss, 1.0f, 1000, 500, 1000)
 		}),
 		new("Nivel 6 - La Biblioteca", Decode(Map2), new Vector2(1.5f, 4.5f), new[]
 		{
@@ -128,7 +128,7 @@ public static class GameData
 		}, MissionType.Collect, 3),
 		new("Nivel 8 - El Corazón del Vacío", Decode(Map8), new Vector2(7.5f, 7.5f), new[]
 		{
-			new EnemySpawn(new Vector2(8f, 1.5f), 1000f, EnemyType.Sentinel, 0.5f, 5000, 2000, 5000)
+			new EnemySpawn(new Vector2(8f, 1.5f), 7500f, EnemyType.Sentinel, 0.5f, 5000, 2000, 5000)
 		})
 	};
 

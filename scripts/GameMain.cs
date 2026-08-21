@@ -14,6 +14,9 @@ public partial class GameMain : Node2D
 {
 	private const float FieldOfView = 1.57f;
 	private const float WallMaxDistance = 18f;
+	private const float PlayerWallCollisionRadius = 0.22f;
+	private const float EnemyProjectilePlayerHitRadius = 0.40f;
+	private const float ItemPickupRadius = 0.50f;
 
 	private readonly Random _random = new();
 	private readonly PlayerState _player = new();
@@ -78,6 +81,7 @@ public partial class GameMain : Node2D
 	private int _draggingSliderTouchIndex = -1;
 	private float[] _zBuffer = Array.Empty<float>();
 	private float[] _wallTopBuffer = Array.Empty<float>();
+	private bool _debugOverlayEnabled;
 
 	private static readonly Dictionary<int, Color> WallColors = new()
 	{
@@ -121,6 +125,12 @@ public partial class GameMain : Node2D
 	{
 		if (inputEvent is InputEventKey key && key.Pressed && !key.Echo)
 		{
+			if (_phase == GamePhase.Playing && key.Keycode == Key.Enter)
+			{
+				ToggleDebugOverlay();
+				return;
+			}
+
 			if (_phase == GamePhase.Playing)
 			{
 				if (key.Keycode is Key.Escape or Key.P)
@@ -140,6 +150,12 @@ public partial class GameMain : Node2D
 
 		if (inputEvent is InputEventJoypadButton joyButton && joyButton.Pressed)
 		{
+			if (_phase == GamePhase.Playing && joyButton.ButtonIndex == JoyButton.Y)
+			{
+				ToggleDebugOverlay();
+				return;
+			}
+
 			if (_phase == GamePhase.Playing)
 			{
 				if (joyButton.ButtonIndex is JoyButton.Start or JoyButton.Back)
@@ -277,6 +293,7 @@ public partial class GameMain : Node2D
 				DrawRect(new Rect2(Vector2.Zero, size), new Color(0.6f, 0.9f, 1f, 0.5f), false, 6f);
 			}
 			if (!HasGamepad() && DisplayServer.IsTouchscreenAvailable()) DrawTouchControls(size);
+			if (_debugOverlayEnabled) DrawDebugOverlay(size);
 			return;
 		}
 
@@ -336,12 +353,12 @@ public partial class GameMain : Node2D
 		Vector2 direction = new(Mathf.Cos(_player.Angle), Mathf.Sin(_player.Angle));
 		Vector2 side = new(-direction.Y, direction.X);
 		Vector2 movement = (direction * forward + side * strafe) * 2.6f * dt;
-		MoveWithWalls(ref _player.Position, movement, 0.22f, map);
+		MoveWithWalls(ref _player.Position, movement, PlayerWallCollisionRadius, map);
 
 		for (int i = _items.Count - 1; i >= 0; i--)
 		{
 			WorldItem item = _items[i];
-			if (_player.Position.DistanceSquaredTo(item.Position) >= 0.25f) continue;
+			if (_player.Position.DistanceSquaredTo(item.Position) >= ItemPickupRadius * ItemPickupRadius) continue;
 
 			// Conserva el comportamiento original: cualquier objeto suma al contador de recogidos.
 			_player.ItemsCollected++;
@@ -406,7 +423,9 @@ public partial class GameMain : Node2D
 			{
 				foreach (Enemy enemy in _enemies)
 				{
-					if (!enemy.Alive || enemy.Position.DistanceSquaredTo(projectile.Position) >= 0.25f) continue;
+					if (!enemy.Alive) continue;
+					float hitRadius = EnemyCollisionRadius(enemy);
+					if (enemy.Position.DistanceSquaredTo(projectile.Position) >= hitRadius * hitRadius) continue;
 					enemy.Hp -= projectile.Damage;
 					enemy.HitFlash = 0.15f;
 					dead = true;
@@ -423,7 +442,7 @@ public partial class GameMain : Node2D
 					break;
 				}
 			}
-			else if (_player.Position.DistanceSquaredTo(projectile.Position) < 0.16f)
+			else if (_player.Position.DistanceSquaredTo(projectile.Position) < EnemyProjectilePlayerHitRadius * EnemyProjectilePlayerHitRadius)
 			{
 				DamagePlayer(projectile.Damage * (1f - _player.ArmorDefense), 0.3f);
 				dead = true;
@@ -471,7 +490,7 @@ public partial class GameMain : Node2D
 				case EnemyType.Tank:
 					float stopDistance = enemy.Type == EnemyType.Tank ? 1.2f : 0.9f;
 					if (distance > stopDistance)
-						MoveWithWalls(ref enemy.Position, direction * enemy.Speed * dt, 0.3f, map);
+						MoveWithWalls(ref enemy.Position, direction * enemy.Speed * dt, EnemyCollisionRadius(enemy), map);
 					else if (enemy.AttackCooldown <= 0f)
 					{
 						float damage = (enemy.Type == EnemyType.Tank ? meleeDamage * 1.5f : meleeDamage) * (1f - _player.ArmorDefense);
@@ -481,7 +500,7 @@ public partial class GameMain : Node2D
 					break;
 
 				case EnemyType.Ranged:
-					if (distance > 7f) MoveWithWalls(ref enemy.Position, direction * enemy.Speed * 0.6f * dt, 0.3f, map);
+					if (distance > 7f) MoveWithWalls(ref enemy.Position, direction * enemy.Speed * 0.6f * dt, EnemyCollisionRadius(enemy), map);
 					if (distance < 10f && enemy.AttackCooldown <= 0f)
 					{
 						_projectiles.Add(new Projectile(enemy.Position, Mathf.Atan2(toPlayer.Y, toPlayer.X), 5f, rangedDamage, ProjectileOwner.Enemy, Colors.Green));
@@ -491,7 +510,7 @@ public partial class GameMain : Node2D
 
 				case EnemyType.Boss:
 					Vector2 bossDirection = direction + new Vector2(Mathf.Sin(_frameTick * 0.05f), Mathf.Cos(_frameTick * 0.05f)) * 0.5f;
-					if (distance > 4f) MoveWithWalls(ref enemy.Position, bossDirection * enemy.Speed * dt, 0.4f, map);
+					if (distance > 4f) MoveWithWalls(ref enemy.Position, bossDirection * enemy.Speed * dt, EnemyCollisionRadius(enemy), map);
 					if (enemy.AttackCooldown <= 0f)
 					{
 						float angle = Mathf.Atan2(toPlayer.Y, toPlayer.X);
@@ -502,7 +521,7 @@ public partial class GameMain : Node2D
 					break;
 
 				case EnemyType.Sentinel:
-					MoveWithWalls(ref enemy.Position, direction * enemy.Speed * dt, 0.3f, map);
+					MoveWithWalls(ref enemy.Position, direction * enemy.Speed * dt, EnemyCollisionRadius(enemy), map);
 					if (enemy.AttackCooldown <= 0f)
 					{
 						float angle = Mathf.Atan2(toPlayer.Y, toPlayer.X);
@@ -607,10 +626,37 @@ public partial class GameMain : Node2D
 
 	private void MoveWithWalls(ref Vector2 position, Vector2 movement, float radius, int[][] map)
 	{
-		Vector2 xTest = new(position.X + movement.X + (movement.X > 0f ? radius : -radius), position.Y);
-		if (!IsWall(xTest, map)) position.X += movement.X;
-		Vector2 yTest = new(position.X, position.Y + movement.Y + (movement.Y > 0f ? radius : -radius));
-		if (!IsWall(yTest, map)) position.Y += movement.Y;
+		Vector2 xCandidate = new(position.X + movement.X, position.Y);
+		if (!CircleTouchesWall(xCandidate, radius, map)) position.X = xCandidate.X;
+		Vector2 yCandidate = new(position.X, position.Y + movement.Y);
+		if (!CircleTouchesWall(yCandidate, radius, map)) position.Y = yCandidate.Y;
+	}
+
+	// Comprueba el círculo completo contra todas las celdas sólidas cercanas. Las
+	// pruebas anteriores solo tanteaban un punto en X/Y, por lo que un sprite ancho
+	// podía introducir brazos o bordes en una esquina de pared.
+	private static bool CircleTouchesWall(Vector2 center, float radius, int[][] map)
+	{
+		int minX = Mathf.FloorToInt(center.X - radius);
+		int maxX = Mathf.FloorToInt(center.X + radius);
+		int minY = Mathf.FloorToInt(center.Y - radius);
+		int maxY = Mathf.FloorToInt(center.Y + radius);
+		float radiusSquared = radius * radius;
+
+		for (int y = minY; y <= maxY; y++)
+		{
+			for (int x = minX; x <= maxX; x++)
+			{
+				if (y >= 0 && y < map.Length && x >= 0 && x < map[0].Length && map[y][x] == 0) continue;
+				float nearestX = Mathf.Clamp(center.X, x, x + 1f);
+				float nearestY = Mathf.Clamp(center.Y, y, y + 1f);
+				float offsetX = center.X - nearestX;
+				float offsetY = center.Y - nearestY;
+				if (offsetX * offsetX + offsetY * offsetY < radiusSquared) return true;
+			}
+		}
+
+		return false;
 	}
 
 	private void SpawnExplosion(Vector2 position, Color color, int count)
@@ -974,6 +1020,115 @@ public partial class GameMain : Node2D
 		DrawColoredPolygon(triangle, Colors.Cyan);
 	}
 
+	// Superposición de depuración: representa el mismo espacio de coordenadas que
+	// usan las comprobaciones de colisión, para que los radios no sean estimaciones
+	// visuales de los sprites sino los valores que utiliza realmente la simulación.
+	private void DrawDebugOverlay(Vector2 size)
+	{
+		int[][] map = GameData.Levels[_levelIndex].Map;
+		const float margin = 14f;
+		const float padding = 8f;
+		const float headerHeight = 24f;
+		const float footerHeight = 18f;
+		float panelSize = Mathf.Clamp(Mathf.Min(size.X * 0.34f, size.Y * 0.62f), 240f, 420f);
+		Rect2 panel = new(size.X - panelSize - margin, margin, panelSize, panelSize);
+		DrawRect(panel, new Color(0.015f, 0.025f, 0.05f, 0.92f));
+		DrawRect(panel, Color.FromHtml("22d3ee"), false, 2f);
+		DrawText("DEBUG · ENTER / Y para ocultar", panel.Position + new Vector2(10f, 17f), 13, Color.FromHtml("bff7ff"));
+
+		float mapSize = Mathf.Min(panel.Size.X - padding * 2f, panel.Size.Y - headerHeight - footerHeight - padding * 3f);
+		Rect2 mapRect = new(panel.Position.X + (panel.Size.X - mapSize) * 0.5f, panel.Position.Y + headerHeight + padding, mapSize, mapSize);
+		DrawRect(mapRect, new Color(0.02f, 0.04f, 0.08f, 1f));
+		Vector2 cellSize = new(mapRect.Size.X / map[0].Length, mapRect.Size.Y / map.Length);
+		Color wallFill = new(1f, 0.34f, 0.08f, 0.30f);
+		Color wallOutline = Color.FromHtml("ff8a3d");
+
+		for (int y = 0; y < map.Length; y++)
+		{
+			for (int x = 0; x < map[y].Length; x++)
+			{
+				if (map[y][x] == 0) continue;
+				Rect2 collisionCell = new(mapRect.Position + new Vector2(x * cellSize.X, y * cellSize.Y), cellSize);
+				DrawRect(collisionCell, wallFill);
+				DrawRect(collisionCell, wallOutline, false, 1f);
+			}
+		}
+
+		float pixelsPerUnit = Mathf.Min(cellSize.X, cellSize.Y);
+		Color movementColor = Color.FromHtml("22d3ee");
+		Color hitColor = Color.FromHtml("f472ff");
+		Color pickupColor = Color.FromHtml("86efac");
+
+		foreach (WorldItem item in _items)
+		{
+			Vector2 point = DebugMapPoint(mapRect, cellSize, item.Position);
+			DrawDebugRadius(point, ItemPickupRadius * pixelsPerUnit, pickupColor);
+			DrawCircle(point, Mathf.Max(2.5f, pixelsPerUnit * 0.14f), item.Color);
+		}
+
+		foreach (Projectile projectile in _projectiles)
+		{
+			Vector2 point = DebugMapPoint(mapRect, cellSize, projectile.Position);
+			Vector2 direction = new(Mathf.Cos(projectile.Angle), Mathf.Sin(projectile.Angle));
+			DrawLine(point, point + direction * pixelsPerUnit * 0.75f, projectile.Color, 1.5f);
+			DrawCircle(point, Mathf.Max(2f, pixelsPerUnit * 0.1f), projectile.Color);
+		}
+
+		foreach (RemotePlayerState remote in _remotePlayers.Values)
+		{
+			Vector2 point = DebugMapPoint(mapRect, cellSize, remote.Position);
+			DrawDebugRadius(point, PlayerWallCollisionRadius * pixelsPerUnit, Color.FromHtml("60a5fa"));
+			DrawCircle(point, Mathf.Max(3f, pixelsPerUnit * 0.16f), Color.FromHtml("60a5fa"));
+		}
+
+		foreach (Enemy enemy in _enemies)
+		{
+			if (!enemy.Alive) continue;
+			Vector2 point = DebugMapPoint(mapRect, cellSize, enemy.Position);
+			Color enemyColor = EnemyColor(enemy.Type);
+			float collisionRadius = EnemyCollisionRadius(enemy);
+			DrawDebugRadius(point, collisionRadius * pixelsPerUnit, hitColor);
+			DrawCircle(point, collisionRadius * pixelsPerUnit, wallOutline, false, 0.75f);
+			DrawCircle(point, Mathf.Max(3f, pixelsPerUnit * 0.16f), enemyColor);
+			DrawText($"{DebugEnemyLabel(enemy.Type)} {enemy.Hp:0} h:{collisionRadius:0.00}", point + new Vector2(4f, -4f), 11, enemyColor);
+		}
+
+		Vector2 player = DebugMapPoint(mapRect, cellSize, _player.Position);
+		DrawDebugRadius(player, EnemyProjectilePlayerHitRadius * pixelsPerUnit, hitColor);
+		DrawDebugRadius(player, PlayerWallCollisionRadius * pixelsPerUnit, movementColor);
+		Vector2 look = new(Mathf.Cos(_player.Angle), Mathf.Sin(_player.Angle));
+		float fovLength = pixelsPerUnit * 3.25f;
+		DrawLine(player, player + look.Rotated(-FieldOfView * 0.5f) * fovLength, movementColor, 1.5f);
+		DrawLine(player, player + look.Rotated(FieldOfView * 0.5f) * fovLength, movementColor, 1.5f);
+		DrawColoredPolygon(new[] { player + look * 5f, player + look.Rotated(2.4f) * 4f, player + look.Rotated(-2.4f) * 4f }, movementColor);
+
+		DrawRect(mapRect, Color.FromHtml("c4f1ff"), false, 1.5f);
+		DrawText("Cian: jugador · naranja: muro · violeta: impacto · verde: recoger", new Vector2(panel.Position.X + 10f, panel.End.Y - 6f), 10, new Color(1f, 1f, 1f, 0.82f));
+	}
+
+	private void ToggleDebugOverlay()
+	{
+		_debugOverlayEnabled = !_debugOverlayEnabled;
+		QueueRedraw();
+	}
+
+	private static Vector2 DebugMapPoint(Rect2 mapRect, Vector2 cellSize, Vector2 worldPosition) => mapRect.Position + new Vector2(worldPosition.X * cellSize.X, worldPosition.Y * cellSize.Y);
+
+	private void DrawDebugRadius(Vector2 center, float radius, Color color)
+	{
+		DrawCircle(center, radius, Alpha(color, 0.10f));
+		DrawCircle(center, radius, color, false, 1.25f);
+	}
+
+	private static string DebugEnemyLabel(EnemyType type) => type switch
+	{
+		EnemyType.Melee => "M",
+		EnemyType.Ranged => "R",
+		EnemyType.Tank => "T",
+		EnemyType.Boss => "B",
+		_ => "S"
+	};
+
 	private void DrawCrosshair(Vector2 size)
 	{
 		Vector2 center = size * 0.5f;
@@ -1067,6 +1222,7 @@ public partial class GameMain : Node2D
 		}
 	}
 
+	private void DrawSettings(Vector2 size)
 	{
 		DrawCenteredText("AJUSTES", 70f, 38, Colors.White);
 
@@ -1721,7 +1877,7 @@ public partial class GameMain : Node2D
 		if (phase == GamePhase.Shop) { _shopScroll = 0f; _shopFocusIndex = 0; _shopPointerActive = false; }
 		if (phase == GamePhase.MainMenu) PlayMusic("bgm_menu");
 		if ((phase == GamePhase.Playing) && _levelIndex + 1 == 5) PlayMusic("bgm_boss5_game");
-		if ((phase == GamePhase.Playing) && _levelIndex + 1 == 8) PlayMusic("bgm_boss8_game")
+		if ((phase == GamePhase.Playing) && _levelIndex + 1 == 8) PlayMusic("bgm_boss8_game");
 		if ((phase == GamePhase.Playing) && (_levelIndex + 1 != 5 && _levelIndex + 1 != 8)) PlayMusic("bgm_regular_game");
 
 		// En PC, el ratón no se usa para apuntar (el disparo sigue _player.Angle),
@@ -1902,7 +2058,7 @@ public partial class GameMain : Node2D
 
 	private void LoadAudio()
 	{
-		foreach (string name in new[] { "bgm_menu", "bgm_regular_game", "bgm_boss_game", "snd_shoot", "snd_player_hit", "snd_enemy_red", "snd_enemy_green", "snd_enemy_blue", "snd_enemy_boss", "snd_enemy_sentinel" })
+		foreach (string name in new[] { "bgm_menu", "bgm_regular_game", "bgm_boss5_game", "bgm_boss8_game", "bgm_finalboss_game", "snd_shoot", "snd_player_hit", "snd_enemy_red", "snd_enemy_green", "snd_enemy_blue", "snd_enemy_boss", "snd_enemy_sentinel" })
 		{
 			AudioStream? stream = GD.Load<AudioStream>($"res://assets/audio/{name}.mp3");
 			if (stream != null) _sounds[name] = stream;
@@ -1995,6 +2151,20 @@ public partial class GameMain : Node2D
 	};
 	private static float EnemyScale(EnemyType type) => type switch { EnemyType.Tank => 1.5f, EnemyType.Boss => 2.5f, EnemyType.Sentinel => 2.8f, _ => 1.2f };
 	private Texture2D? EnemyTexture(EnemyType type) => type switch { EnemyType.Melee => _redEnemy, EnemyType.Ranged => _greenWizard, EnemyType.Tank => _blueTank, EnemyType.Boss => _boss, _ => _sentinel };
+
+	// La escala de la textura en el mundo coincide con DrawWorldSprite: cada
+	// spritesheet contiene cinco fotogramas horizontales. El radio es la mitad
+	// del ancho visible del fotograma ya escalado, de modo que brazos y alas no
+	// atraviesan las paredes y los proyectiles impactan donde se ve al enemigo.
+	private float EnemyCollisionRadius(Enemy enemy)
+	{
+		Texture2D? texture = EnemyTexture(enemy.Type);
+		if (texture == null) return EnemyScale(enemy.Type) * 0.3f;
+		float frameWidth = texture.GetWidth() / 5f;
+		float visibleWorldWidth = EnemyScale(enemy.Type) * frameWidth / texture.GetHeight();
+		return visibleWorldWidth * 0.5f;
+	}
+
 	private static string EnemySound(EnemyType type) => type switch { EnemyType.Melee => "snd_enemy_red", EnemyType.Ranged => "snd_enemy_green", EnemyType.Tank => "snd_enemy_blue", EnemyType.Boss => "snd_enemy_boss", _ => "snd_enemy_sentinel" };
 	private bool HasGamepad() => Input.GetConnectedJoypads().Count > 0;
 	private float NextFloat() => (float)_random.NextDouble();
