@@ -1,15 +1,15 @@
 {
   "version": 2,
-  "dgSpecHash": "R2F50WurzgY=",
+  "dgSpecHash": "FEgVI3RkkRw=",
   "success": true,
-  "projectFilePath": "C:\\Users\\AlumnoDiegoMartinRei\\Documents\\Lord-Magician---Godot-Edition\\Lord Magician.csproj",
+  "projectFilePath": "C:\\Users\\diego\\Documents\\Scripts de clase\\LordMagicianGodot\\Lord-Magician---Godot-Edition\\Lord Magician.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\AlumnoDiegoMartinRei\\.nuget\\packages\\godot.sourcegenerators\\4.7.1\\godot.sourcegenerators.4.7.1.nupkg.sha512",
-    "C:\\Users\\AlumnoDiegoMartinRei\\.nuget\\packages\\godotsharp\\4.7.1\\godotsharp.4.7.1.nupkg.sha512",
-    "C:\\Users\\AlumnoDiegoMartinRei\\.nuget\\packages\\godotsharpeditor\\4.7.1\\godotsharpeditor.4.7.1.nupkg.sha512",
-    "C:\\Users\\AlumnoDiegoMartinRei\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.30\\microsoft.netcore.app.ref.8.0.30.nupkg.sha512",
-    "C:\\Users\\AlumnoDiegoMartinRei\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.30\\microsoft.windowsdesktop.app.ref.8.0.30.nupkg.sha512",
-    "C:\\Users\\AlumnoDiegoMartinRei\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.30\\microsoft.aspnetcore.app.ref.8.0.30.nupkg.sha512"
+    "C:\\Users\\diego\\.nuget\\packages\\godot.sourcegenerators\\4.7.1\\godot.sourcegenerators.4.7.1.nupkg.sha512",
+    "C:\\Users\\diego\\.nuget\\packages\\godotsharp\\4.7.1\\godotsharp.4.7.1.nupkg.sha512",
+    "C:\\Users\\diego\\.nuget\\packages\\godotsharpeditor\\4.7.1\\godotsharpeditor.4.7.1.nupkg.sha512",
+    "C:\\Users\\diego\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.30\\microsoft.netcore.app.ref.8.0.30.nupkg.sha512",
+    "C:\\Users\\diego\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.30\\microsoft.windowsdesktop.app.ref.8.0.30.nupkg.sha512",
+    "C:\\Users\\diego\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.30\\microsoft.aspnetcore.app.ref.8.0.30.nupkg.sha512"
   ],
   "logs": []
 }

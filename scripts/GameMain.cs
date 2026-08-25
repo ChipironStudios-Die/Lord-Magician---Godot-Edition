@@ -54,6 +54,7 @@ public partial class GameMain : Node2D
 	private Texture2D? _redPotion;
 	private Texture2D? _bluePotion;
 	private AudioStreamPlayer? _musicPlayer;
+	private string _currentMusicName = "";
 
 	private GamePhase _phase = GamePhase.MainMenu;
 	private Difficulty _difficulty = Difficulty.Normal;
@@ -1190,7 +1191,7 @@ public partial class GameMain : Node2D
 
 		float y = size.Y * 0.58f;
 		DrawButton(new Rect2(size.X * 0.5f - 145f, y, 290f, 54f), "COMENZAR", UiAction.Start, _menuIndex == 0);
-		DrawButton(new Rect2(size.X * 0.5f - 145f, y + 70f, 290f, 54f), "MULTIJUGADOR", UiAction.OpenMultiplayer, _menuIndex == 1);
+		DrawButton(new Rect2(size.X * 0.5f - 145f, y + 70f, 290f, 54f), "MULTIJUGADOR", UiAction.OpenMultiplayer, _menuIndex == 1, false);
 		DrawButton(new Rect2(size.X * 0.5f - 145f, y + 140f, 290f, 54f), "AJUSTES", UiAction.OpenSettings, _menuIndex == 2);
 		DrawCenteredText("WASD/mando para moverte · Ratón/táctil para mirar · Espacio/R2 para disparar", size.Y - 32f, 14, new Color(1f, 1f, 1f, 0.65f));
 	}
@@ -1739,7 +1740,7 @@ public partial class GameMain : Node2D
 		if (_phase == GamePhase.Shop) { ConfirmShopFocus(); return; }
 		UiAction action = _phase switch
 		{
-			GamePhase.MainMenu => _menuIndex switch { 0 => UiAction.Start, 1 => UiAction.OpenMultiplayer, _ => UiAction.OpenSettings },
+			GamePhase.MainMenu => _menuIndex switch { 0 => UiAction.Start, 1 => UiAction.None, _ => UiAction.OpenSettings },
 			GamePhase.Settings => _menuIndex == 5 ? UiAction.SettingsBack : UiAction.None,
 			GamePhase.LevelClear => _menuIndex == 0 ? UiAction.LevelShop : UiAction.LevelContinue,
 			GamePhase.GameOver => _menuIndex == 0 ? UiAction.Retry : UiAction.GameOverMenu,
@@ -2060,8 +2061,11 @@ public partial class GameMain : Node2D
 	{
 		foreach (string name in new[] { "bgm_menu", "bgm_regular_game", "bgm_boss5_game", "bgm_boss8_game", "bgm_finalboss_game", "snd_shoot", "snd_player_hit", "snd_enemy_red", "snd_enemy_green", "snd_enemy_blue", "snd_enemy_boss", "snd_enemy_sentinel" })
 		{
-			AudioStream? stream = GD.Load<AudioStream>($"res://assets/audio/{name}.mp3");
-			if (stream != null) _sounds[name] = stream;
+			AudioStream? stream = GD.Load<AudioStream>($"res://assets/audio/{name}.ogg");
+			if (stream == null) continue;
+			// La música (bgm_*) debe repetirse sin fin; los efectos de sonido (snd_*) no.
+			if (name.StartsWith("bgm_") && stream is AudioStreamMP3 mp3) mp3.Loop = true;
+			_sounds[name] = stream;
 		}
 		_musicPlayer = new AudioStreamPlayer();
 		AddChild(_musicPlayer);
@@ -2070,6 +2074,8 @@ public partial class GameMain : Node2D
 	private void PlayMusic(string name)
 	{
 		if (_musicPlayer == null || !_sounds.TryGetValue(name, out AudioStream? stream)) return;
+		if (_currentMusicName == name && _musicPlayer.Playing) return; // ya está sonando: no reiniciar desde el principio
+		_currentMusicName = name;
 		_musicPlayer.Stop();
 		_musicPlayer.Stream = stream;
 		_musicPlayer.VolumeDb = Mathf.LinearToDb(Mathf.Max(0.001f, _musicVolume));
