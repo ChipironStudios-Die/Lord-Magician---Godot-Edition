@@ -2064,7 +2064,7 @@ public partial class GameMain : Node2D
 			AudioStream? stream = GD.Load<AudioStream>($"res://assets/audio/{name}.ogg");
 			if (stream == null) continue;
 			// La música (bgm_*) debe repetirse sin fin; los efectos de sonido (snd_*) no.
-			if (name.StartsWith("bgm_") && stream is AudioStreamMP3 mp3) mp3.Loop = true;
+			if (name.StartsWith("bgm_") && stream is AudioStreamOggVorbis ogg) ogg.Loop = true;
 			_sounds[name] = stream;
 		}
 		_musicPlayer = new AudioStreamPlayer();
