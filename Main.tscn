@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://dq3actjqi5yan"]
 
-[ext_resource type="Script" uid="uid://biw4efqfq1tyw" path="res://scripts/GameMain.cs" id="1_main"]
+[ext_resource type="Script" uid="uid://b6a5t2ssc0810" path="res://scripts/GameMain.cs" id="1_main"]
 
 [node name="LordMagician" type="Node2D" unique_id=102809871]
 script = ExtResource("1_main")
