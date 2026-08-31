@@ -1,3 +1,2 @@
-res://scripts/GameData.cs
-res://Main.tscn
 res://scripts/GameMain.cs
+res://scripts/GameData.cs

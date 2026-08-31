@@ -111,25 +111,32 @@ public static class GameData
 			new EnemySpawn(new Vector2(8f, 4.5f), 150f, EnemyType.Tank, 0.8f, 55, 20, 35)
 		}, new[]
 		{
-			new LightDef(new Vector2(2.5f, 1.5f), Color.FromHtml("ffb066")),
-			new LightDef(new Vector2(13.5f, 1.5f), Color.FromHtml("ffb066")),
-			new LightDef(new Vector2(1.5f, 13.5f), Color.FromHtml("ffb066")),
-			new LightDef(new Vector2(13.5f, 14.5f), Color.FromHtml("ffb066")),
-			new LightDef(new Vector2(8f, 4.5f), Color.FromHtml("ffb066"), 1.6f, 7f)
+			new LightDef(new Vector2(1.5f, 1.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(14.5f, 1.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(1.5f, 14.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(14.5f, 14.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(8f, 4.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(4f, 8f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(8f, 11.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(12f, 8f), Color.FromHtml("ffb066")),
 		}),
 		new("Nivel 3 - El Núcleo Arcano", Decode(Map3), new Vector2(1.5f, 1.5f), new[]
 		{
 			new EnemySpawn(new Vector2(14.5f, 1.5f), 120f, EnemyType.Melee, 1.4f, 40),
 			new EnemySpawn(new Vector2(1.5f, 14.5f), 90f, EnemyType.Ranged, 1.2f, 45),
 			new EnemySpawn(new Vector2(14.5f, 14.5f), 120f, EnemyType.Tank, 0.9f, 50),
-			new EnemySpawn(new Vector2(7.5f, 7.5f), 260f, EnemyType.Melee, 2.0f, 120, 50, 80)
+			new EnemySpawn(new Vector2(8f, 8f), 260f, EnemyType.Melee, 2.0f, 120, 50, 80)
 		}, new[]
 		{
 			new LightDef(new Vector2(1.5f, 1.5f), Color.FromHtml("b388ff")),
+			new LightDef(new Vector2(1.5f, 8f), Color.FromHtml("b388ff")),
 			new LightDef(new Vector2(14.5f, 1.5f), Color.FromHtml("b388ff")),
+			new LightDef(new Vector2(8f, 1.5f), Color.FromHtml("b388ff")),
 			new LightDef(new Vector2(1.5f, 14.5f), Color.FromHtml("b388ff")),
+			new LightDef(new Vector2(8f, 14.5f), Color.FromHtml("b388ff")),
 			new LightDef(new Vector2(14.5f, 14.5f), Color.FromHtml("b388ff")),
-			new LightDef(new Vector2(7.5f, 7.5f), Color.FromHtml("b388ff"), 1.8f, 8f)
+			new LightDef(new Vector2(14.5f, 8f), Color.FromHtml("b388ff")),
+			new LightDef(new Vector2(8f, 8f), Color.FromHtml("b388ff"), 2.4f, 12f)
 		}),
 		new("Nivel 4 - Catacumbas", Decode(Map4), new Vector2(8f, 8f), new[]
 		{

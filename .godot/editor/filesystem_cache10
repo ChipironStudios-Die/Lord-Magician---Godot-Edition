@@ -1,7 +1,7 @@
 9cad1ddce9e5a63143ba340c9520626b
-::res://::1788127225
+::res://::1788188798
 export_presets.cfg::TextFile::-1::1788026402::0::1::::<><><>0<>0<><>::
-Main.tscn::PackedScene::8340090710575061661::1788026402::0::1::::<><><>0<>0<><>::uid://b6a5t2ssc0810::::res://scripts/GameMain.cs
+Main.tscn::PackedScene::8340090710575061661::1788127426::0::1::::<><><>0<>0<><>::uid://bic5xsunjln1y::::res://scripts/GameMain.cs
 README.md::TextFile::-1::1788026402::0::1::::<><><>0<>0<><>::
 ::res://assets/::1788107327
 ::res://assets/audio/::1788107848
@@ -35,6 +35,6 @@ red_enemy_spritesheet.png::CompressedTexture2D::7443231087991229886::1788026468:
 red_potion.png::CompressedTexture2D::4222604384986155508::1788026468::1788026468::1::::<><><>0<>0<>9b0b152bf974ee1684e4cd97ec1ffb28<>res://.godot/imported/red_potion.png-17120717aa47764eb88d81114b706802.ctex::
 sentinel_spritesheet.png::CompressedTexture2D::9196470025369516041::1788026468::1788026468::1::::<><><>0<>0<>ac1aa08824d4de1aabd5ec963536d610<>res://.godot/imported/sentinel_spritesheet.png-ef72643f132b8dcfcb4e5f65dc118aee.ctex::
 weapons.png::CompressedTexture2D::7175003704769554474::1788026468::1788026468::1::::<><><>0<>0<>1fe03cd8f1018f50861121dc04f554d0<>res://.godot/imported/weapons.png-27a166622c698fac517fe46c631961ee.ctex::
-::res://scripts/::1788127154
-GameData.cs::CSharpScript::2917887642870953353::1788125842::0::1::::<><><>0<>0<><>::
-GameMain.cs::CSharpScript::4564131723097757241::1788125844::0::1::::<>Node2D<><>0<>0<><>::
+::res://scripts/::1788129243
+GameData.cs::CSharpScript::7169322423126758860::1788129243::0::1::::<><><>0<>0<><>::
+GameMain.cs::CSharpScript::2953923748267812936::1788127253::0::1::::<>Node2D<><>0<>0<><>::
