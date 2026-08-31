@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\AlumnoDiegoMartinRei\\Documents\\Lord-Magician---Godot-Edition\\Lord Magician.csproj": {}
+    "/home/chipironstudios/Lord-Magician---Godot-Edition/Lord Magician.csproj": {}
   },
   "projects": {
-    "C:\\Users\\AlumnoDiegoMartinRei\\Documents\\Lord-Magician---Godot-Edition\\Lord Magician.csproj": {
+    "/home/chipironstudios/Lord-Magician---Godot-Edition/Lord Magician.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\AlumnoDiegoMartinRei\\Documents\\Lord-Magician---Godot-Edition\\Lord Magician.csproj",
+        "projectUniqueName": "/home/chipironstudios/Lord-Magician---Godot-Edition/Lord Magician.csproj",
         "projectName": "Lord Magician",
-        "projectPath": "C:\\Users\\AlumnoDiegoMartinRei\\Documents\\Lord-Magician---Godot-Edition\\Lord Magician.csproj",
-        "packagesPath": "C:\\Users\\AlumnoDiegoMartinRei\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\AlumnoDiegoMartinRei\\Documents\\Lord-Magician---Godot-Edition\\.godot\\mono\\temp\\obj\\",
+        "projectPath": "/home/chipironstudios/Lord-Magician---Godot-Edition/Lord Magician.csproj",
+        "packagesPath": "/home/chipironstudios/.nuget/packages/",
+        "outputPath": "/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\AlumnoDiegoMartinRei\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "/home/chipironstudios/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -24,7 +24,6 @@
         },
         "frameworks": {
           "net8.0": {
-            "framework": "net8.0",
             "targetAlias": "net8.0",
             "projectReferences": {}
           }
@@ -39,27 +38,26 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "10.0.300"
+        "SdkAnalysisLevel": "10.0.100"
       },
       "frameworks": {
         "net8.0": {
-          "framework": "net8.0",
           "targetAlias": "net8.0",
           "dependencies": {
             "Godot.SourceGenerators": {
               "suppressParent": "All",
               "target": "Package",
-              "version": "[4.7.1, )",
+              "version": "[4.7.2, )",
               "autoReferenced": true
             },
             "GodotSharp": {
               "target": "Package",
-              "version": "[4.7.1, )",
+              "version": "[4.7.2, )",
               "autoReferenced": true
             },
             "GodotSharpEditor": {
               "target": "Package",
-              "version": "[4.7.1, )",
+              "version": "[4.7.2, )",
               "autoReferenced": true
             }
           },
@@ -82,10 +80,6 @@
             {
               "name": "Microsoft.NETCore.App.Ref",
               "version": "[8.0.30, 8.0.30]"
-            },
-            {
-              "name": "Microsoft.WindowsDesktop.App.Ref",
-              "version": "[8.0.30, 8.0.30]"
             }
           ],
           "frameworkReferences": {
@@ -93,7 +87,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.303/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.111/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

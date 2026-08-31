@@ -1,53 +1,71 @@
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\obj\Debug\Lord Magician.csproj.AssemblyReference.cache
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\obj\Debug\Lord Magician.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\obj\Debug\Lord Magician.AssemblyInfoInputs.cache
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\obj\Debug\Lord Magician.AssemblyInfo.cs
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\obj\Debug\Lord Magician.csproj.CoreCompileInputs.cache
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\bin\Debug\Lord Magician.deps.json
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\bin\Debug\Lord Magician.runtimeconfig.json
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\bin\Debug\Lord Magician.dll
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\bin\Debug\Lord Magician.pdb
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\bin\Debug\GodotSharp.dll
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\bin\Debug\GodotSharpEditor.dll
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\obj\Debug\Lord Mag.A84D7178.Up2Date
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\obj\Debug\Lord Magician.dll
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\obj\Debug\refint\Lord Magician.dll
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\obj\Debug\Lord Magician.pdb
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\obj\Debug\Lord Magician.genruntimeconfig.cache
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\.godot\mono\temp\obj\Debug\ref\Lord Magician.dll
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\Debug\Lord Magician.deps.json
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\Debug\Lord Magician.runtimeconfig.json
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\Debug\Lord Magician.dll
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\Debug\Lord Magician.pdb
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\Debug\GodotSharp.dll
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\Debug\GodotSharpEditor.dll
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.csproj.AssemblyReference.cache
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.AssemblyInfoInputs.cache
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.AssemblyInfo.cs
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.csproj.CoreCompileInputs.cache
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.sourcelink.json
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Mag.A84D7178.Up2Date
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.dll
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\refint\Lord Magician.dll
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.pdb
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.genruntimeconfig.cache
-C:\Users\AlumnoDiegoMartinRei\Documents\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\ref\Lord Magician.dll
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\Debug\Lord Magician.deps.json
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\Debug\Lord Magician.runtimeconfig.json
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\Debug\Lord Magician.dll
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\Debug\Lord Magician.pdb
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\Debug\GodotSharp.dll
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\bin\Debug\GodotSharpEditor.dll
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.csproj.AssemblyReference.cache
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.AssemblyInfoInputs.cache
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.AssemblyInfo.cs
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.csproj.CoreCompileInputs.cache
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.sourcelink.json
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Mag.A84D7178.Up2Date
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.dll
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\refint\Lord Magician.dll
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.pdb
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\Lord Magician.genruntimeconfig.cache
-C:\Users\diego\Documents\Scripts de clase\LordMagicianGodot\Lord-Magician---Godot-Edition\.godot\mono\temp\obj\Debug\ref\Lord Magician.dll
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/.godot/mono/temp/obj/Debug/Lord Magician.csproj.AssemblyReference.cache
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/.godot/mono/temp/obj/Debug/Lord Magician.GeneratedMSBuildEditorConfig.editorconfig
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/.godot/mono/temp/obj/Debug/Lord Magician.AssemblyInfoInputs.cache
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/.godot/mono/temp/obj/Debug/Lord Magician.AssemblyInfo.cs
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/.godot/mono/temp/obj/Debug/Lord Magician.csproj.CoreCompileInputs.cache
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/.godot/mono/temp/bin/Debug/Lord Magician.deps.json
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/.godot/mono/temp/bin/Debug/Lord Magician.runtimeconfig.json
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/.godot/mono/temp/bin/Debug/Lord Magician.dll
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/.godot/mono/temp/bin/Debug/Lord Magician.pdb
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/.godot/mono/temp/bin/Debug/GodotSharp.dll
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/.godot/mono/temp/bin/Debug/GodotSharpEditor.dll
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/.godot/mono/temp/obj/Debug/Lord Mag.A84D7178.Up2Date
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/.godot/mono/temp/obj/Debug/Lord Magician.dll
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/.godot/mono/temp/obj/Debug/refint/Lord Magician.dll
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/.godot/mono/temp/obj/Debug/Lord Magician.pdb
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/.godot/mono/temp/obj/Debug/Lord Magician.genruntimeconfig.cache
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/.godot/mono/temp/obj/Debug/ref/Lord Magician.dll
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/Lord Magician.deps.json
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/Lord Magician.runtimeconfig.json
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/Lord Magician.dll
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/Lord Magician.pdb
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/GodotSharp.dll
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/GodotSharpEditor.dll
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.csproj.AssemblyReference.cache
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.GeneratedMSBuildEditorConfig.editorconfig
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.AssemblyInfoInputs.cache
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.AssemblyInfo.cs
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.csproj.CoreCompileInputs.cache
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.sourcelink.json
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Mag.A84D7178.Up2Date
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.dll
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/refint/Lord Magician.dll
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.pdb
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.genruntimeconfig.cache
+C:/Users/AlumnoDiegoMartinRei/Documents/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/ref/Lord Magician.dll
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/Lord Magician.deps.json
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/Lord Magician.runtimeconfig.json
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/Lord Magician.dll
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/Lord Magician.pdb
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/GodotSharp.dll
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/GodotSharpEditor.dll
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.csproj.AssemblyReference.cache
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.GeneratedMSBuildEditorConfig.editorconfig
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.AssemblyInfoInputs.cache
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.AssemblyInfo.cs
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.csproj.CoreCompileInputs.cache
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.sourcelink.json
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Mag.A84D7178.Up2Date
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.dll
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/refint/Lord Magician.dll
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.pdb
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.genruntimeconfig.cache
+C:/Users/diego/Documents/Scripts de clase/LordMagicianGodot/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/ref/Lord Magician.dll
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.csproj.AssemblyReference.cache
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.GeneratedMSBuildEditorConfig.editorconfig
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.AssemblyInfoInputs.cache
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.AssemblyInfo.cs
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.csproj.CoreCompileInputs.cache
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.sourcelink.json
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.dll
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/refint/Lord Magician.dll
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.pdb
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/Lord Magician.deps.json
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/Lord Magician.runtimeconfig.json
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/Lord Magician.dll
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/Lord Magician.pdb
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/GodotSharp.dll
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/bin/Debug/GodotSharpEditor.dll
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Mag.A84D7178.Up2Date
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/Lord Magician.genruntimeconfig.cache
+/home/chipironstudios/Lord-Magician---Godot-Edition/.godot/mono/temp/obj/Debug/ref/Lord Magician.dll

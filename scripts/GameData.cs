@@ -15,6 +15,7 @@ public readonly record struct WeaponDef(string Name, float Damage, float ManaCos
 public readonly record struct ArmorDef(string Name, float Defense, int Cost);
 public readonly record struct AccessoryDef(string Name, float AttackBonus, int Cost);
 public readonly record struct EnemySpawn(Vector2 Position, float Hp, EnemyType Type, float Speed = 1.2f, int ExpReward = 20, int GoldMin = 5, int GoldMax = 15);
+public readonly record struct LightDef(Vector2 Position, Color Color, float Energy = 1.8f, float Range = 9f, float Height = 0.85f);
 
 public sealed class LevelDef
 {
@@ -22,15 +23,17 @@ public sealed class LevelDef
 	public int[][] Map { get; }
 	public Vector2 Start { get; }
 	public EnemySpawn[] Spawns { get; }
+	public LightDef[] Lights { get; }
 	public MissionType Mission { get; }
 	public int TargetCount { get; }
 
-	public LevelDef(string name, int[][] map, Vector2 start, EnemySpawn[] spawns, MissionType mission = MissionType.Eliminate, int targetCount = 0)
+	public LevelDef(string name, int[][] map, Vector2 start, EnemySpawn[] spawns, LightDef[] lights, MissionType mission = MissionType.Eliminate, int targetCount = 0)
 	{
 		Name = name;
 		Map = map;
 		Start = start;
 		Spawns = spawns;
+		Lights = lights;
 		Mission = mission;
 		TargetCount = targetCount;
 	}
@@ -87,6 +90,18 @@ public static class GameData
 			new EnemySpawn(new Vector2(3.5f, 10.5f), 60f, EnemyType.Melee),
 			new EnemySpawn(new Vector2(13.5f, 13.5f), 40f, EnemyType.Ranged),
 			new EnemySpawn(new Vector2(7.5f, 7.5f), 100f, EnemyType.Melee, 1.6f, 40, 15, 25)
+		}, new[]
+		{
+			new LightDef(new Vector2(1.5f, 1.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(1.5f, 9.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(8.5f, 1.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(5.5f, 3.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(10.5f, 5.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(3.5f, 10.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(9.5f, 11.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(13.5f, 13.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(7.5f, 7.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(14.5f, 5.5f), Color.FromHtml("ffb066"), 2f, 12f)
 		}),
 		new("Nivel 2 - El Bosque de Piedra", Decode(Map2), new Vector2(2.5f, 1.5f), new[]
 		{
@@ -94,6 +109,13 @@ public static class GameData
 			new EnemySpawn(new Vector2(1.5f, 13.5f), 90f, EnemyType.Melee, 1.3f, 30),
 			new EnemySpawn(new Vector2(13.5f, 14.5f), 60f, EnemyType.Ranged, 1.2f, 35),
 			new EnemySpawn(new Vector2(8f, 4.5f), 150f, EnemyType.Tank, 0.8f, 55, 20, 35)
+		}, new[]
+		{
+			new LightDef(new Vector2(2.5f, 1.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(13.5f, 1.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(1.5f, 13.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(13.5f, 14.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(8f, 4.5f), Color.FromHtml("ffb066"), 1.6f, 7f)
 		}),
 		new("Nivel 3 - El Núcleo Arcano", Decode(Map3), new Vector2(1.5f, 1.5f), new[]
 		{
@@ -101,6 +123,13 @@ public static class GameData
 			new EnemySpawn(new Vector2(1.5f, 14.5f), 90f, EnemyType.Ranged, 1.2f, 45),
 			new EnemySpawn(new Vector2(14.5f, 14.5f), 120f, EnemyType.Tank, 0.9f, 50),
 			new EnemySpawn(new Vector2(7.5f, 7.5f), 260f, EnemyType.Melee, 2.0f, 120, 50, 80)
+		}, new[]
+		{
+			new LightDef(new Vector2(1.5f, 1.5f), Color.FromHtml("b388ff")),
+			new LightDef(new Vector2(14.5f, 1.5f), Color.FromHtml("b388ff")),
+			new LightDef(new Vector2(1.5f, 14.5f), Color.FromHtml("b388ff")),
+			new LightDef(new Vector2(14.5f, 14.5f), Color.FromHtml("b388ff")),
+			new LightDef(new Vector2(7.5f, 7.5f), Color.FromHtml("b388ff"), 1.8f, 8f)
 		}),
 		new("Nivel 4 - Catacumbas", Decode(Map4), new Vector2(8f, 8f), new[]
 		{
@@ -109,26 +138,63 @@ public static class GameData
 			new EnemySpawn(new Vector2(2.5f, 13.5f), 120f, EnemyType.Melee, 1.5f),
 			new EnemySpawn(new Vector2(13.5f, 13.5f), 100f, EnemyType.Ranged, 1.0f),
 			new EnemySpawn(new Vector2(8f, 13.5f), 400f, EnemyType.Tank, 0.8f, 150, 80, 150)
+		}, new[]
+		{
+			new LightDef(new Vector2(8f, 8f), Color.FromHtml("ffb066"), 1.6f, 8f),
+			new LightDef(new Vector2(2.5f, 2.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(13.5f, 2.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(2.5f, 13.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(13.5f, 13.5f), Color.FromHtml("ffb066"))
 		}),
 		new("Nivel 5 - El Trono Sangriento", Decode(Map5), new Vector2(8f, 14.5f), new[]
 		{
 			new EnemySpawn(new Vector2(8f, 6f), 4500f, EnemyType.Boss, 1.0f, 1000, 500, 1000)
+		}, new[]
+		{
+			new LightDef(new Vector2(8f, 14.5f), Color.FromHtml("ff5555")),
+			new LightDef(new Vector2(8f, 6f), Color.FromHtml("ff5555"), 2f, 8f),
+			new LightDef(new Vector2(4.5f, 4.5f), Color.FromHtml("ff5555")),
+			new LightDef(new Vector2(11.5f, 4.5f), Color.FromHtml("ff5555")),
+			new LightDef(new Vector2(4.5f, 11.5f), Color.FromHtml("ff5555")),
+			new LightDef(new Vector2(11.5f, 11.5f), Color.FromHtml("ff5555"))
 		}),
 		new("Nivel 6 - La Biblioteca", Decode(Map6), new Vector2(1.5f, 4.5f), new[]
 		{
 			new EnemySpawn(new Vector2(8f, 4.5f), 100f, EnemyType.Melee),
 			new EnemySpawn(new Vector2(14.5f, 4.5f), 100f, EnemyType.Melee),
 			new EnemySpawn(new Vector2(14.5f, 14.5f), 100f, EnemyType.Ranged)
+		}, new[]
+		{
+			new LightDef(new Vector2(1.5f, 4.5f), Color.FromHtml("ffd27a")),
+			new LightDef(new Vector2(8f, 4.5f), Color.FromHtml("ffd27a")),
+			new LightDef(new Vector2(14.5f, 4.5f), Color.FromHtml("ffd27a")),
+			new LightDef(new Vector2(14.5f, 14.5f), Color.FromHtml("ffd27a")),
+			new LightDef(new Vector2(7.5f, 7.5f), Color.FromHtml("ffd27a"))
 		}, MissionType.Collect, 3),
 		new("Nivel 7 - El Puente", Decode(Map7), new Vector2(1.5f, 1.5f), new[]
 		{
 			new EnemySpawn(new Vector2(8f, 2f), 150f, EnemyType.Tank),
 			new EnemySpawn(new Vector2(3.5f, 7.5f), 150f, EnemyType.Tank),
 			new EnemySpawn(new Vector2(11.5f, 7.5f), 150f, EnemyType.Tank)
+		}, new[]
+		{
+			new LightDef(new Vector2(1.5f, 1.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(8f, 2f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(3.5f, 7.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(11.5f, 7.5f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(8.5f, 13.5f), Color.FromHtml("ffb066"))
 		}, MissionType.Collect, 3),
 		new("Nivel 8 - El Corazón del Vacío", Decode(Map8), new Vector2(7.5f, 7.5f), new[]
 		{
 			new EnemySpawn(new Vector2(8f, 1.5f), 7500f, EnemyType.Sentinel, 0.5f, 5000, 2000, 5000)
+		}, new[]
+		{
+			new LightDef(new Vector2(7.5f, 7.5f), Color.FromHtml("9d4edd"), 1.8f, 8f),
+			new LightDef(new Vector2(8f, 1.5f), Color.FromHtml("9d4edd"), 1.8f, 7f),
+			new LightDef(new Vector2(1.5f, 2.5f), Color.FromHtml("9d4edd")),
+			new LightDef(new Vector2(14.5f, 2.5f), Color.FromHtml("9d4edd")),
+			new LightDef(new Vector2(1.5f, 13.5f), Color.FromHtml("9d4edd")),
+			new LightDef(new Vector2(14.5f, 13.5f), Color.FromHtml("9d4edd"))
 		})
 	};
 

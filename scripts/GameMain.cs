@@ -110,8 +110,151 @@ public partial class GameMain : Node2D
 
 		LoadAudio();
 		CreateWallTextures();
+		Setup3DScaffold();
 		PlayMusic("bgm_menu");
 		QueueRedraw();
+	}
+
+	// =====================================================================
+	// GRÁFICOS 3D (sustituye al raycaster para el pintado de paredes/suelo/techo)
+	// -----------------------------------------------------------------------
+	// El resto del juego (posición del jugador, colisiones, IA, HUD, tienda,
+	// multijugador...) sigue funcionando exactamente igual, en el mismo
+	// espacio 2D de rejilla de siempre. Aquí solo se traduce esa rejilla a
+	// una escena 3D real que Godot renderiza por hardware: X de la rejilla
+	// sigue siendo X en 3D, e Y de la rejilla pasa a ser Z en 3D (el mundo
+	// 3D queda "tumbado" sobre el plano XZ, con Y como la altura).
+	// Los sprites (enemigos/objetos/proyectiles) de momento se siguen
+	// dibujando como antes, en 2D, superpuestos sobre esta imagen de fondo.
+	// =====================================================================
+	private SubViewport? _viewport3D;
+	private Camera3D? _camera3D;
+	private Node3D? _levelGeometry3D;
+	private const float EyeHeight3D = 0.5f;
+
+	private void Setup3DScaffold()
+	{
+		_viewport3D = new SubViewport
+		{
+			Size = new Vector2I(1280, 720),
+			RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
+			OwnWorld3D = true
+		};
+		AddChild(_viewport3D);
+
+		WorldEnvironment worldEnvironment = new()
+		{
+			Environment = new Godot.Environment
+			{
+				BackgroundMode = Godot.Environment.BGMode.Color,
+				BackgroundColor = Color.FromHtml("0a0810"),
+				AmbientLightSource = Godot.Environment.AmbientSource.Color,
+				AmbientLightColor = Color.FromHtml("3a3540"),
+				AmbientLightEnergy = 0.35f
+			}
+		};
+		_viewport3D.AddChild(worldEnvironment);
+
+		// FOV horizontal (KeepWidth) para que coincida con el mismo campo de
+		// visión que ya usaba el raycaster (FieldOfView), sea cual sea la
+		// proporción de pantalla — el raycaster también medía el FOV en horizontal.
+		_camera3D = new Camera3D
+		{
+			Fov = Mathf.RadToDeg(FieldOfView),
+			KeepAspect = Camera3D.KeepAspectEnum.Width,
+			Current = true
+		};
+		_viewport3D.AddChild(_camera3D);
+
+		_levelGeometry3D = new Node3D();
+		_viewport3D.AddChild(_levelGeometry3D);
+	}
+
+	// Reconstruye la geometría 3D del nivel a partir de la misma rejilla int[][]
+	// que ya usa el resto del juego. Una caja de 1x1x1 por celda de pared,
+	// agrupando por código para reutilizar malla y material entre todas las
+	// celdas del mismo tipo (menos nodos/materiales, no por rendimiento crítico
+	// sino por simplicidad). Suelo y techo son dos planos que cubren el mapa.
+	private void Generate3DLevelGeometry(int[][] map, LightDef[] lights)
+	{
+		if (_levelGeometry3D == null) return;
+		foreach (Node child in _levelGeometry3D.GetChildren())
+			child.QueueFree();
+
+		int rows = map.Length;
+		int cols = map[0].Length;
+
+		Dictionary<int, (BoxMesh mesh, StandardMaterial3D material)> wallKinds = new();
+		for (int y = 0; y < rows; y++)
+		{
+			for (int x = 0; x < cols; x++)
+			{
+				int code = map[y][x];
+				if (code <= 0) continue;
+				if (!wallKinds.TryGetValue(code, out (BoxMesh mesh, StandardMaterial3D material) kind))
+				{
+					StandardMaterial3D material = new()
+					{
+						AlbedoColor = WallColor(code),
+						TextureFilter = BaseMaterial3D.TextureFilterEnum.NearestWithMipmaps
+					};
+					if (_wallTextures.TryGetValue(code, out Texture2D? texture)) material.AlbedoTexture = texture;
+					kind = (new BoxMesh { Size = Vector3.One }, material);
+					wallKinds[code] = kind;
+				}
+				MeshInstance3D box = new() { Mesh = kind.mesh, MaterialOverride = kind.material };
+				box.Position = new Vector3(x + 0.5f, 0.5f, y + 0.5f);
+				_levelGeometry3D.AddChild(box);
+			}
+		}
+
+		PlaneMesh groundMesh = new() { Size = new Vector2(cols, rows) };
+		MeshInstance3D floor = new()
+		{
+			Mesh = groundMesh,
+			MaterialOverride = new StandardMaterial3D { AlbedoColor = Color.FromHtml("2b2118") },
+			Position = new Vector3(cols * 0.5f, 0f, rows * 0.5f)
+		};
+		_levelGeometry3D.AddChild(floor);
+
+		MeshInstance3D ceiling = new()
+		{
+			Mesh = groundMesh,
+			MaterialOverride = new StandardMaterial3D { AlbedoColor = Color.FromHtml("201028") },
+			Position = new Vector3(cols * 0.5f, 1f, rows * 0.5f),
+			RotationDegrees = new Vector3(0f, 0f, 180f)
+		};
+		_levelGeometry3D.AddChild(ceiling);
+
+		// Antorchas/focos de cada nivel, colocados por coordenadas en GameData
+		// (LevelDef.Lights) igual que los enemigos — ver GameData.cs.
+		foreach (LightDef light in lights)
+		{
+			OmniLight3D torch = new()
+			{
+				Position = new Vector3(light.Position.X, light.Height, light.Position.Y),
+				LightColor = light.Color,
+				LightEnergy = light.Energy,
+				OmniRange = light.Range,
+				OmniAttenuation = 1.4f
+			};
+			_levelGeometry3D.AddChild(torch);
+		}
+	}
+
+	// Coloca la cámara 3D en la misma posición/ángulo 2D que ya lleva el jugador.
+	// La X e Y de la rejilla son X y Z en 3D; el ángulo 2D (0 = mirando hacia +X)
+	// se traduce al giro en Y de la cámara — ver el comentario del cálculo.
+	private void Update3DCamera(Vector2 size)
+	{
+		if (_camera3D == null || _viewport3D == null) return;
+		Vector2I targetSize = new((int)size.X, (int)size.Y);
+		if (_viewport3D.Size != targetSize) _viewport3D.Size = targetSize;
+
+		_camera3D.Position = new Vector3(_player.Position.X, EyeHeight3D, _player.Position.Y);
+		// Ángulo 2D θ (dirección = cos θ, sin θ) ⇒ giro en Y de la cámara = -(θ + 90°),
+		// para que la cámara mire en esa misma dirección (X_2D→X_3D, Y_2D→Z_3D).
+		_camera3D.Rotation = new Vector3(0f, -(_player.Angle + Mathf.Pi * 0.5f), 0f);
 	}
 
 	public override void _Process(double delta)
@@ -543,6 +686,7 @@ public partial class GameMain : Node2D
 		_touchShooting = false;
 		_mouseShooting = false;
 		LevelDef level = GameData.Levels[index];
+		Generate3DLevelGeometry(level.Map, level.Lights);
 		_player.Position = level.Start;
 		_player.Angle = 0f;
 		_player.MaxHealth = _difficulty == Difficulty.Easy ? 200f : 120f;
@@ -673,8 +817,8 @@ public partial class GameMain : Node2D
 
 	private void DrawGame(Vector2 size)
 	{
-		DrawVerticalGradient(new Rect2(Vector2.Zero, new Vector2(size.X, size.Y * 0.5f)), Color.FromHtml("0d0714"), Color.FromHtml("201028"));
-		DrawVerticalGradient(new Rect2(0f, size.Y * 0.5f, size.X, size.Y * 0.5f), Color.FromHtml("1a130e"), Color.FromHtml("2b2118"));
+		Update3DCamera(size);
+		if (_viewport3D != null) DrawTextureRect(_viewport3D.GetTexture(), new Rect2(Vector2.Zero, size), false);
 
 		int rayCount = _graphicsQuality switch
 		{
@@ -690,8 +834,11 @@ public partial class GameMain : Node2D
 		Vector2 direction = new(Mathf.Cos(_player.Angle), Mathf.Sin(_player.Angle));
 		Vector2 plane = new Vector2(-Mathf.Sin(_player.Angle), Mathf.Cos(_player.Angle)) * Mathf.Tan(FieldOfView * 0.5f);
 		Vector2 shake = _player.ScreenShake > 0f ? new Vector2((NextFloat() - 0.5f) * _player.ScreenShake * 100f, (NextFloat() - 0.5f) * _player.ScreenShake * 100f) : Vector2.Zero;
-		float columnWidth = size.X / rayCount;
 
+		// Este bucle YA NO dibuja las paredes (eso lo hace ahora la escena 3D de
+		// arriba) — se conserva solo para rellenar _zBuffer/_wallTopBuffer, que
+		// el recorte de sprites (DrawWorldSprite) sigue necesitando para saber
+		// qué tapa a qué.
 		for (int i = 0; i < rayCount; i++)
 		{
 			float cameraX = 2f * i / rayCount - 1f;
@@ -715,21 +862,8 @@ public partial class GameMain : Node2D
 
 			float wallDistance = Mathf.Max(0.001f, side == 0 ? sideX - deltaX : sideY - deltaY);
 			_zBuffer[i] = wallDistance;
-			float wallX = side == 0 ? _player.Position.Y + wallDistance * rayDirection.Y : _player.Position.X + wallDistance * rayDirection.X;
-			wallX -= Mathf.Floor(wallX);
 			float lineHeight = screenDistance / wallDistance;
-			int code = mapY >= 0 && mapY < map.Length && mapX >= 0 && mapX < map[0].Length ? map[mapY][mapX] : 1;
-			float wallTop = (size.Y - lineHeight) * 0.5f;
-			_wallTopBuffer[i] = wallTop;
-			Rect2 destination = new(i * columnWidth + shake.X, wallTop + shake.Y, columnWidth + 1f, lineHeight);
-
-			if (_wallTextures.TryGetValue(code, out Texture2D? texture))
-				DrawTextureRectRegion(texture, destination, new Rect2(wallX * 255f, 0f, 1f, 256f));
-			else
-				DrawRect(destination, WallColor(code));
-
-			float brightness = Mathf.Clamp(1.1f - wallDistance * 0.05f, 0.2f, 1f) * (side == 1 ? 0.75f : 1f);
-			DrawRect(destination, new Color(0f, 0f, 0f, 1f - brightness));
+			_wallTopBuffer[i] = (size.Y - lineHeight) * 0.5f;
 		}
 
 		List<WorldSprite> sprites = new();
