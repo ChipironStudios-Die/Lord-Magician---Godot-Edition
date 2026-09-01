@@ -147,11 +147,15 @@ public static class GameData
 			new EnemySpawn(new Vector2(8f, 13.5f), 400f, EnemyType.Tank, 0.8f, 150, 80, 150)
 		}, new[]
 		{
-			new LightDef(new Vector2(8f, 8f), Color.FromHtml("ffb066"), 1.6f, 8f),
-			new LightDef(new Vector2(2.5f, 2.5f), Color.FromHtml("ffb066")),
-			new LightDef(new Vector2(13.5f, 2.5f), Color.FromHtml("ffb066")),
-			new LightDef(new Vector2(2.5f, 13.5f), Color.FromHtml("ffb066")),
-			new LightDef(new Vector2(13.5f, 13.5f), Color.FromHtml("ffb066"))
+			new LightDef(new Vector2(8f, 8f), Color.FromHtml("ffb066"), 2.4f, 12f),
+			new LightDef(new Vector2(2f, 2f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(2f, 8f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(14f, 2f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(8f, 2f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(2f, 14f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(8f, 14f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(14f, 14f), Color.FromHtml("ffb066")),
+			new LightDef(new Vector2(14f, 8f), Color.FromHtml("ffb066"))
 		}),
 		new("Nivel 5 - El Trono Sangriento", Decode(Map5), new Vector2(8f, 14.5f), new[]
 		{

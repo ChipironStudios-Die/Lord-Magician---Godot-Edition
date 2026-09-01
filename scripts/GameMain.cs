@@ -208,23 +208,37 @@ public partial class GameMain : Node2D
 			}
 		}
 
-		PlaneMesh groundMesh = new() { Size = new Vector2(cols, rows) };
-		MeshInstance3D floor = new()
+		// Suelo y techo en baldosas pequeñas (no un único plano gigante): el
+		// renderer "Mobile" de Godot (el que se usa para exportar a Android)
+		// solo tiene en cuenta hasta 8 luces por cada malla — un plano que
+		// cubriera todo el nivel podría empezar a parpadear en cuanto un nivel
+		// tenga más de 8 antorchas. Con baldosas pequeñas, cada una solo ve
+		// las antorchas cercanas, así que no hay tope real por nivel.
+		const int floorTileSize = 2;
+		StandardMaterial3D floorMaterial = new() { AlbedoColor = Color.FromHtml("2b2118") };
+		StandardMaterial3D ceilingMaterial = new() { AlbedoColor = Color.FromHtml("201028") };
+		for (int ty = 0; ty < rows; ty += floorTileSize)
 		{
-			Mesh = groundMesh,
-			MaterialOverride = new StandardMaterial3D { AlbedoColor = Color.FromHtml("2b2118") },
-			Position = new Vector3(cols * 0.5f, 0f, rows * 0.5f)
-		};
-		_levelGeometry3D.AddChild(floor);
+			for (int tx = 0; tx < cols; tx += floorTileSize)
+			{
+				float tileWidth = Mathf.Min(floorTileSize, cols - tx);
+				float tileDepth = Mathf.Min(floorTileSize, rows - ty);
+				PlaneMesh tileMesh = new() { Size = new Vector2(tileWidth, tileDepth) };
+				Vector3 center = new(tx + tileWidth * 0.5f, 0f, ty + tileDepth * 0.5f);
 
-		MeshInstance3D ceiling = new()
-		{
-			Mesh = groundMesh,
-			MaterialOverride = new StandardMaterial3D { AlbedoColor = Color.FromHtml("201028") },
-			Position = new Vector3(cols * 0.5f, 1f, rows * 0.5f),
-			RotationDegrees = new Vector3(0f, 0f, 180f)
-		};
-		_levelGeometry3D.AddChild(ceiling);
+				MeshInstance3D floorTile = new() { Mesh = tileMesh, MaterialOverride = floorMaterial, Position = center };
+				_levelGeometry3D.AddChild(floorTile);
+
+				MeshInstance3D ceilingTile = new()
+				{
+					Mesh = tileMesh,
+					MaterialOverride = ceilingMaterial,
+					Position = center + Vector3.Up,
+					RotationDegrees = new Vector3(0f, 0f, 180f)
+				};
+				_levelGeometry3D.AddChild(ceilingTile);
+			}
+		}
 
 		// Antorchas/focos de cada nivel, colocados por coordenadas en GameData
 		// (LevelDef.Lights) igual que los enemigos — ver GameData.cs.
