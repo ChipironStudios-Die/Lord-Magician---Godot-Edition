@@ -116,7 +116,7 @@ public partial class GameMain : Node2D
 	}
 
 	// =====================================================================
-	// GRÁFICOS 3D (sustituye al raycaster para el pintado de paredes/suelo/techo)
+	// GRÁFICOS 3D (sustituye al raycaster para el pintado de paredes/suelo)
 	// -----------------------------------------------------------------------
 	// El resto del juego (posición del jugador, colisiones, IA, HUD, tienda,
 	// multijugador...) sigue funcionando exactamente igual, en el mismo
@@ -130,6 +130,10 @@ public partial class GameMain : Node2D
 	private SubViewport? _viewport3D;
 	private Camera3D? _camera3D;
 	private Node3D? _levelGeometry3D;
+	private Node3D? _spritesLayer3D;
+	private ImageTexture? _glowTexture3D;
+	private ImageTexture? _solidTexture3D;
+	private readonly Dictionary<object, Node3D> _spriteNodes3D = new();
 	private const float EyeHeight3D = 0.5f;
 
 	private void Setup3DScaffold()
@@ -168,13 +172,49 @@ public partial class GameMain : Node2D
 
 		_levelGeometry3D = new Node3D();
 		_viewport3D.AddChild(_levelGeometry3D);
+
+		// Enemigos/objetos/proyectiles/jugadores remotos viven aparte de la
+		// geometría estática del nivel: se crean y destruyen todo el rato
+		// durante la partida, no solo al cargar nivel.
+		_spritesLayer3D = new Node3D();
+		_viewport3D.AddChild(_spritesLayer3D);
+
+		_glowTexture3D = CreateGlowTexture();
+		_solidTexture3D = CreateSolidTexture();
+	}
+
+	private static ImageTexture CreateSolidTexture()
+	{
+		Image image = Image.CreateEmpty(4, 4, false, Image.Format.Rgba8);
+		image.Fill(Colors.White);
+		return ImageTexture.CreateFromImage(image);
+	}
+
+	// Textura radial blanca (centro opaco, borde transparente) para proyectiles
+	// y el marcador de jugadores remotos — se tiñe con Modulate según el color
+	// que ya tenía cada uno en el sistema 2D anterior.
+	private static ImageTexture CreateGlowTexture()
+	{
+		const int size = 64;
+		Image image = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
+		Vector2 center = new(size * 0.5f, size * 0.5f);
+		for (int y = 0; y < size; y++)
+		{
+			for (int x = 0; x < size; x++)
+			{
+				float t = Mathf.Clamp(new Vector2(x, y).DistanceTo(center) / (size * 0.5f), 0f, 1f);
+				float alpha = Mathf.Pow(1f - t, 2.2f);
+				image.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+			}
+		}
+		return ImageTexture.CreateFromImage(image);
 	}
 
 	// Reconstruye la geometría 3D del nivel a partir de la misma rejilla int[][]
 	// que ya usa el resto del juego. Una caja de 1x1x1 por celda de pared,
 	// agrupando por código para reutilizar malla y material entre todas las
 	// celdas del mismo tipo (menos nodos/materiales, no por rendimiento crítico
-	// sino por simplicidad). Suelo y techo son dos planos que cubren el mapa.
+	// sino por simplicidad). El suelo es un plano que cubre el mapa (sin techo).
 	private void Generate3DLevelGeometry(int[][] map, LightDef[] lights)
 	{
 		if (_levelGeometry3D == null) return;
@@ -208,7 +248,7 @@ public partial class GameMain : Node2D
 			}
 		}
 
-		// Suelo y techo en baldosas pequeñas (no un único plano gigante): el
+		// Suelo en baldosas pequeñas (no un único plano gigante): el
 		// renderer "Mobile" de Godot (el que se usa para exportar a Android)
 		// solo tiene en cuenta hasta 8 luces por cada malla — un plano que
 		// cubriera todo el nivel podría empezar a parpadear en cuanto un nivel
@@ -216,7 +256,6 @@ public partial class GameMain : Node2D
 		// las antorchas cercanas, así que no hay tope real por nivel.
 		const int floorTileSize = 2;
 		StandardMaterial3D floorMaterial = new() { AlbedoColor = Color.FromHtml("2b2118") };
-		StandardMaterial3D ceilingMaterial = new() { AlbedoColor = Color.FromHtml("201028") };
 		for (int ty = 0; ty < rows; ty += floorTileSize)
 		{
 			for (int tx = 0; tx < cols; tx += floorTileSize)
@@ -228,15 +267,6 @@ public partial class GameMain : Node2D
 
 				MeshInstance3D floorTile = new() { Mesh = tileMesh, MaterialOverride = floorMaterial, Position = center };
 				_levelGeometry3D.AddChild(floorTile);
-
-				MeshInstance3D ceilingTile = new()
-				{
-					Mesh = tileMesh,
-					MaterialOverride = ceilingMaterial,
-					Position = center + Vector3.Up,
-					RotationDegrees = new Vector3(0f, 0f, 180f)
-				};
-				_levelGeometry3D.AddChild(ceilingTile);
 			}
 		}
 
@@ -269,6 +299,245 @@ public partial class GameMain : Node2D
 		// Ángulo 2D θ (dirección = cos θ, sin θ) ⇒ giro en Y de la cámara = -(θ + 90°),
 		// para que la cámara mire en esa misma dirección (X_2D→X_3D, Y_2D→Z_3D).
 		_camera3D.Rotation = new Vector3(0f, -(_player.Angle + Mathf.Pi * 0.5f), 0f);
+	}
+
+	private const float EnemyBaseWorldHeight = 1f; // altura en unidades de mundo para EnemyScale = 1 (igual que asume EnemyCollisionRadius)
+
+	// Crea/actualiza/destruye los Sprite3D de enemigos, objetos, proyectiles y
+	// jugadores remotos, comparando qué sigue "vivo" en las listas de siempre
+	// (_enemies, _items, _projectiles, _remotePlayers) contra lo que ya había
+	// en _spriteNodes3D.
+	private void Update3DSprites()
+	{
+		if (_spritesLayer3D == null) return;
+		HashSet<object> active = new();
+
+		foreach (Enemy enemy in _enemies)
+		{
+			if (!enemy.Alive) continue;
+			active.Add(enemy);
+			float bodyHeight = EnemyBaseWorldHeight * EnemyScale(enemy.Type);
+			Node3D root = GetOrCreateEnemyNode(enemy, bodyHeight);
+			root.Position = new Vector3(enemy.Position.X, bodyHeight * 0.5f, enemy.Position.Y);
+			UpdateEnemyNode(root, enemy, bodyHeight);
+			// Ya no hay zBuffer 2D del que tirar: la detección vuelve a mirar si hay
+			// pared de por medio en línea recta (igual que antes de que los sprites
+			// se dibujaran en pantalla), ahora que las paredes/sprites son 3D de verdad.
+			enemy.PlayerVisible = HasLineOfSight3D(_player.Position, enemy.Position);
+		}
+
+		foreach (Projectile projectile in _projectiles)
+		{
+			active.Add(projectile);
+			Sprite3D glow = GetOrCreateGlowNode(projectile, projectile.Color, 0.5f);
+			glow.Position = new Vector3(projectile.Position.X, EyeHeight3D, projectile.Position.Y);
+		}
+
+		foreach (WorldItem item in _items)
+		{
+			active.Add(item);
+			Node3D node = GetOrCreateItemNode(item);
+			node.Position = new Vector3(item.Position.X, 0.35f, item.Position.Y);
+		}
+
+		if (_multiplayerActive)
+		{
+			foreach (RemotePlayerState remote in _remotePlayers.Values)
+			{
+				active.Add(remote);
+				Node3D root = GetOrCreateRemotePlayerNode(remote);
+				root.Position = new Vector3(remote.Position.X, EyeHeight3D, remote.Position.Y);
+				if (root.GetNodeOrNull<Label3D>("Label") is Label3D label)
+					label.Text = $"{remote.Name} ({Mathf.CeilToInt(remote.Health)}/{Mathf.CeilToInt(remote.MaxHealth)})";
+			}
+		}
+
+		List<object>? stale = null;
+		foreach (object key in _spriteNodes3D.Keys)
+		{
+			if (active.Contains(key)) continue;
+			(stale ??= new List<object>()).Add(key);
+		}
+		if (stale != null)
+		{
+			foreach (object key in stale)
+			{
+				_spriteNodes3D[key].QueueFree();
+				_spriteNodes3D.Remove(key);
+			}
+		}
+	}
+
+	private bool HasLineOfSight3D(Vector2 from, Vector2 to)
+	{
+		int[][] map = GameData.Levels[_levelIndex].Map;
+		Vector2 delta = to - from;
+		float distance = delta.Length();
+		if (distance < 0.001f) return true;
+		Vector2 step = delta / distance * 0.25f;
+		Vector2 point = from;
+		int steps = Mathf.CeilToInt(distance / 0.25f);
+		for (int i = 1; i < steps; i++)
+		{
+			point += step;
+			if (IsWall(point, map)) return false;
+		}
+		return true;
+	}
+
+	private Node3D GetOrCreateEnemyNode(Enemy enemy, float bodyHeight)
+	{
+		if (_spriteNodes3D.TryGetValue(enemy, out Node3D? existing)) return existing;
+
+		Node3D root = new();
+		Texture2D? texture = EnemyTexture(enemy.Type);
+		if (texture != null)
+		{
+			Sprite3D body = new()
+			{
+				Name = "Body",
+				Texture = texture,
+				Hframes = 5,
+				Vframes = 1,
+				PixelSize = bodyHeight / texture.GetHeight(),
+				Billboard = BaseMaterial3D.BillboardModeEnum.FixedY,
+				AlphaCut = SpriteBase3D.AlphaCutMode.Discard,
+				TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest
+			};
+			root.AddChild(body);
+		}
+		AddHealthBarChildren(root);
+		_spritesLayer3D!.AddChild(root);
+		_spriteNodes3D[enemy] = root;
+		return root;
+	}
+
+	private void UpdateEnemyNode(Node3D root, Enemy enemy, float bodyHeight)
+	{
+		if (root.GetNodeOrNull<Sprite3D>("Body") is Sprite3D body)
+		{
+			body.Frame = enemy.AnimationFrame;
+			body.Modulate = enemy.HitFlash > 0f ? new Color(1f, 0.55f, 0.55f) : Colors.White;
+		}
+		UpdateHealthBarChildren(root, bodyHeight * 0.5f + 0.18f, enemy.MaxHp > 0f ? enemy.Hp / enemy.MaxHp : 0f);
+	}
+
+	// Barra de vida flotante: dos Sprite3D con una textura sólida de 4x4,
+	// estirados con Scale a modo de rectángulo (fondo oscuro + relleno rojo).
+	private void AddHealthBarChildren(Node3D root)
+	{
+		Sprite3D bg = new()
+		{
+			Name = "HealthBg",
+			Texture = _solidTexture3D,
+			PixelSize = 0.25f,
+			Billboard = BaseMaterial3D.BillboardModeEnum.FixedY,
+			Modulate = new Color(0f, 0f, 0f, 0.6f),
+			Shaded = false
+		};
+		root.AddChild(bg);
+
+		Sprite3D fill = new()
+		{
+			Name = "HealthFill",
+			Texture = _solidTexture3D,
+			PixelSize = 0.25f,
+			Billboard = BaseMaterial3D.BillboardModeEnum.FixedY,
+			Modulate = Color.FromHtml("ef5350"),
+			Shaded = false
+		};
+		root.AddChild(fill);
+	}
+
+	private static void UpdateHealthBarChildren(Node3D root, float barY, float healthT, float barWidth = 0.7f, float barHeight = 0.08f)
+	{
+		healthT = Mathf.Clamp(healthT, 0f, 1f);
+		if (root.GetNodeOrNull<Sprite3D>("HealthBg") is Sprite3D bg)
+		{
+			bg.Scale = new Vector3(barWidth, barHeight, 1f);
+			bg.Position = new Vector3(0f, barY, 0f);
+		}
+		if (root.GetNodeOrNull<Sprite3D>("HealthFill") is Sprite3D fill)
+		{
+			float filledWidth = barWidth * healthT;
+			fill.Scale = new Vector3(Mathf.Max(0.001f, filledWidth), barHeight, 1f);
+			fill.Position = new Vector3(-(barWidth - filledWidth) * 0.5f, barY, 0.001f);
+		}
+	}
+
+	private Node3D GetOrCreateItemNode(WorldItem item)
+	{
+		if (_spriteNodes3D.TryGetValue(item, out Node3D? existing)) return existing;
+
+		Texture2D? texture = item.Type switch { ItemType.PotionRed => _redPotion, ItemType.PotionBlue => _bluePotion, _ => null };
+		Sprite3D sprite = new()
+		{
+			Billboard = BaseMaterial3D.BillboardModeEnum.FixedY,
+			AlphaCut = SpriteBase3D.AlphaCutMode.Discard,
+			TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest
+		};
+		if (texture != null)
+		{
+			sprite.Texture = texture;
+			sprite.PixelSize = 0.55f / texture.GetHeight();
+		}
+		else
+		{
+			// Sin textura propia (p.ej. pergaminos de misión): círculo de
+			// resplandor teñido con el color que ya trae el objeto.
+			sprite.Texture = _glowTexture3D;
+			sprite.Modulate = item.Color;
+			sprite.PixelSize = 0.4f / 64f;
+			sprite.AlphaCut = SpriteBase3D.AlphaCutMode.Disabled;
+		}
+		_spritesLayer3D!.AddChild(sprite);
+		_spriteNodes3D[item] = sprite;
+		return sprite;
+	}
+
+	private Sprite3D GetOrCreateGlowNode(object source, Color color, float worldSize)
+	{
+		if (_spriteNodes3D.TryGetValue(source, out Node3D? existing)) return (Sprite3D)existing;
+		Sprite3D sprite = new()
+		{
+			Texture = _glowTexture3D,
+			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+			Modulate = color,
+			PixelSize = worldSize / 64f,
+			Shaded = false
+		};
+		_spritesLayer3D!.AddChild(sprite);
+		_spriteNodes3D[source] = sprite;
+		return sprite;
+	}
+
+	private Node3D GetOrCreateRemotePlayerNode(RemotePlayerState remote)
+	{
+		if (_spriteNodes3D.TryGetValue(remote, out Node3D? existing)) return existing;
+		Node3D root = new();
+		Sprite3D body = new()
+		{
+			Name = "Body",
+			Texture = _glowTexture3D,
+			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+			Modulate = Color.FromHtml("29b6f6"),
+			PixelSize = 0.9f / 64f,
+			Shaded = false
+		};
+		root.AddChild(body);
+		Label3D label = new()
+		{
+			Name = "Label",
+			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+			FontSize = 32,
+			PixelSize = 0.012f,
+			Position = new Vector3(0f, 0.6f, 0f),
+			Modulate = Colors.White
+		};
+		root.AddChild(label);
+		_spritesLayer3D!.AddChild(root);
+		_spriteNodes3D[remote] = root;
+		return root;
 	}
 
 	public override void _Process(double delta)
@@ -547,6 +816,7 @@ public partial class GameMain : Node2D
 		_player.Mana = Mathf.Min(_player.MaxMana, _player.Mana + 12f * dt * manaMultiplier);
 		UpdateProjectiles(dt, map);
 		if (IsHostAuthority) UpdateEnemies(dt, map);
+		Update3DSprites();
 
 		if (_player.Health <= 0f)
 		{
@@ -623,7 +893,6 @@ public partial class GameMain : Node2D
 			if (!enemy.Alive) continue;
 			enemy.HitFlash -= dt;
 			enemy.AttackCooldown -= dt;
-			enemy.Bob += dt * 3f;
 			enemy.AnimationTimer += dt;
 			if (enemy.AnimationTimer >= 0.12f)
 			{
@@ -636,9 +905,9 @@ public partial class GameMain : Node2D
 			if (distanceSquared <= 0.00001f) continue;
 			float distance = Mathf.Sqrt(distanceSquared);
 			Vector2 direction = toPlayer / distance;
-			// El enemigo "ve" al jugador exactamente cuando el jugador ve al enemigo: si se
-			// dibujó al menos un píxel suyo en pantalla este fotograma (comprobado en DrawWorldSprite,
-			// recortado columna a columna contra las paredes), cuenta como dentro de su campo de visión.
+			// El enemigo "ve" al jugador si hay línea recta despejada entre los dos
+			// (comprobado en Update3DSprites vía HasLineOfSight3D, ahora que los sprites
+			// son objetos 3D de verdad y ya no hay recorte de columnas 2D del que tirar).
 			bool canSee = enemy.PlayerVisible;
 			if (!canSee && enemy.Type is not EnemyType.Boss and not EnemyType.Sentinel) continue;
 
@@ -701,6 +970,8 @@ public partial class GameMain : Node2D
 		_mouseShooting = false;
 		LevelDef level = GameData.Levels[index];
 		Generate3DLevelGeometry(level.Map, level.Lights);
+		foreach (Node3D node in _spriteNodes3D.Values) node.QueueFree();
+		_spriteNodes3D.Clear();
 		_player.Position = level.Start;
 		_player.Angle = 0f;
 		_player.MaxHealth = _difficulty == Difficulty.Easy ? 200f : 120f;
@@ -850,9 +1121,10 @@ public partial class GameMain : Node2D
 		Vector2 shake = _player.ScreenShake > 0f ? new Vector2((NextFloat() - 0.5f) * _player.ScreenShake * 100f, (NextFloat() - 0.5f) * _player.ScreenShake * 100f) : Vector2.Zero;
 
 		// Este bucle YA NO dibuja las paredes (eso lo hace ahora la escena 3D de
-		// arriba) — se conserva solo para rellenar _zBuffer/_wallTopBuffer, que
-		// el recorte de sprites (DrawWorldSprite) sigue necesitando para saber
-		// qué tapa a qué.
+		// arriba) ni recorta sprites (enemigos/objetos/proyectiles ya son nodos
+		// 3D de verdad, ver Update3DSprites) — se conserva solo para rellenar
+		// _zBuffer/_wallTopBuffer, que DrawParticle todavía usa para ocluir
+		// las partículas (que siguen dibujándose en 2D) detrás de las paredes.
 		for (int i = 0; i < rayCount; i++)
 		{
 			float cameraX = 2f * i / rayCount - 1f;
@@ -880,25 +1152,6 @@ public partial class GameMain : Node2D
 			_wallTopBuffer[i] = (size.Y - lineHeight) * 0.5f;
 		}
 
-		List<WorldSprite> sprites = new();
-		foreach (Enemy enemy in _enemies)
-		{
-			if (!enemy.Alive) continue;
-			enemy.PlayerVisible = false;
-			sprites.Add(new WorldSprite(enemy.Position, SpriteKind.Enemy, enemy, EnemyColor(enemy.Type), EnemyScale(enemy.Type)));
-		}
-		foreach (Projectile projectile in _projectiles)
-			sprites.Add(new WorldSprite(projectile.Position, SpriteKind.Projectile, projectile, projectile.Color, 0.25f));
-		foreach (WorldItem item in _items)
-			sprites.Add(new WorldSprite(item.Position, SpriteKind.Item, item, item.Color, 0.4f));
-		if (_multiplayerActive)
-			foreach (RemotePlayerState remote in _remotePlayers.Values)
-				sprites.Add(new WorldSprite(remote.Position, SpriteKind.RemotePlayer, remote, Color.FromHtml("29b6f6"), 1.1f));
-		sprites.Sort((left, right) => right.Position.DistanceSquaredTo(_player.Position).CompareTo(left.Position.DistanceSquaredTo(_player.Position)));
-
-		foreach (WorldSprite sprite in sprites)
-			DrawWorldSprite(sprite, size, screenDistance, direction, plane, shake);
-
 		DrawWeapon(size, shake);
 		foreach (Particle particle in _particles)
 			DrawParticle(particle, size, screenDistance, direction, plane, shake);
@@ -909,168 +1162,6 @@ public partial class GameMain : Node2D
 		DrawRect(new Rect2(size.X - edge, 0, edge, size.Y), new Color(0, 0, 0, 0.32f));
 	}
 
-	private void DrawWorldSprite(WorldSprite sprite, Vector2 size, float screenDistance, Vector2 direction, Vector2 plane, Vector2 shake)
-	{
-		Vector2 delta = sprite.Position - _player.Position;
-		float inverseDeterminant = 1f / (plane.X * direction.Y - direction.X * plane.Y);
-		float transformX = inverseDeterminant * (direction.Y * delta.X - direction.X * delta.Y);
-		float transformY = inverseDeterminant * (-plane.Y * delta.X + plane.X * delta.Y);
-		if (transformY <= 0.1f) return;
-
-		float screenX = size.X * 0.5f * (1f + transformX / transformY);
-
-		// Projectile/Item se quedan con la comprobación de un único punto (barato y suficiente
-		// para sprites pequeños); Enemy se recorta columna a columna más abajo.
-		if (sprite.Kind != SpriteKind.Enemy)
-		{
-			int rayIndex = Mathf.Clamp((int)(screenX / size.X * _zBuffer.Length), 0, _zBuffer.Length - 1);
-			if (transformY >= _zBuffer[rayIndex]) return;
-		}
-
-		float spriteHeight = Mathf.Abs(screenDistance / transformY) * sprite.Scale;
-		float wallLineHeight = screenDistance / transformY;
-		float bottom = size.Y * 0.5f + wallLineHeight * 0.5f;
-
-		if (sprite.Kind == SpriteKind.Projectile)
-		{
-			DrawGlow(sprite.Color, new Vector2(screenX + shake.X, size.Y * 0.5f + shake.Y), spriteHeight);
-			return;
-		}
-
-		if (sprite.Kind == SpriteKind.Item)
-		{
-			WorldItem item = (WorldItem)sprite.Source;
-			Texture2D? texture = item.Type == ItemType.PotionRed ? _redPotion : _bluePotion;
-			if (texture != null)
-			{
-				float itemAspect = (float)texture.GetWidth() / texture.GetHeight();
-				float itemWidth = spriteHeight * itemAspect;
-				Rect2 destination = new(screenX - itemWidth * 0.5f + shake.X, bottom - spriteHeight + shake.Y, itemWidth, spriteHeight);
-				DrawTextureRect(texture, destination, false);
-			}
-			else
-			{
-				DrawCircle(new Vector2(screenX + shake.X, bottom - spriteHeight * 0.5f + shake.Y), spriteHeight * 0.3f, sprite.Color);
-			}
-			return;
-		}
-
-		if (sprite.Kind == SpriteKind.RemotePlayer)
-		{
-			RemotePlayerState remote = (RemotePlayerState)sprite.Source;
-			Vector2 center = new(screenX + shake.X, bottom - spriteHeight * 0.5f + shake.Y);
-			DrawCircle(center, spriteHeight * 0.28f, sprite.Color);
-			DrawCircle(center, spriteHeight * 0.28f, Colors.White, false, 2f);
-			float barWidth = spriteHeight * 0.6f;
-			Vector2 barPos = center + new Vector2(-barWidth * 0.5f, -spriteHeight * 0.62f);
-			DrawRect(new Rect2(barPos, new Vector2(barWidth, 4f)), new Color(0f, 0f, 0f, 0.6f));
-			float healthT = remote.MaxHealth > 0f ? Mathf.Clamp(remote.Health / remote.MaxHealth, 0f, 1f) : 0f;
-			DrawRect(new Rect2(barPos, new Vector2(barWidth * healthT, 4f)), Color.FromHtml("ef5350"));
-			DrawText(remote.Name, new Vector2(center.X - barWidth * 0.6f, barPos.Y - 4f), 12, Colors.White);
-			return;
-		}
-
-		Enemy enemy = (Enemy)sprite.Source;
-		Texture2D? enemyTexture = EnemyTexture(enemy.Type);
-		if (enemyTexture == null)
-		{
-			int rayIndex = Mathf.Clamp((int)(screenX / size.X * _zBuffer.Length), 0, _zBuffer.Length - 1);
-			if (transformY >= _zBuffer[rayIndex]) return;
-			enemy.PlayerVisible = true;
-			DrawCircle(new Vector2(screenX + shake.X, bottom - spriteHeight * 0.5f + shake.Y), spriteHeight * 0.3f, sprite.Color);
-			DrawEnemyHealthBar(enemy, screenX, bottom, spriteHeight, shake);
-			return;
-		}
-
-		float frameWidth = enemyTexture.GetWidth() / 5f;
-		float aspect = frameWidth / enemyTexture.GetHeight();
-		float spriteWidth = spriteHeight * aspect;
-		Rect2 destinationEnemy = new(screenX - spriteWidth * 0.5f + shake.X, bottom - spriteHeight + shake.Y, spriteWidth, spriteHeight);
-		Rect2 source = new(enemy.AnimationFrame * frameWidth + 1f, 0f, frameWidth - 2f, enemyTexture.GetHeight());
-
-		bool anyVisible = DrawTextureColumnsClipped(enemyTexture, destinationEnemy, source, size, transformY);
-		enemy.PlayerVisible = anyVisible;
-		if (anyVisible)
-		{
-			if (enemy.HitFlash > 0f) DrawRect(destinationEnemy, new Color(1f, 1f, 1f, 0.5f));
-			DrawEnemyHealthBar(enemy, screenX, bottom, spriteHeight, shake);
-		}
-	}
-
-	/// <summary>
-	/// Barra de vida flotante sobre un enemigo, con el mismo estilo que la de los
-	/// jugadores remotos: fondo semitransparente y relleno rojo proporcional a Hp/MaxHp.
-	/// </summary>
-	private void DrawEnemyHealthBar(Enemy enemy, float screenX, float bottom, float spriteHeight, Vector2 shake)
-	{
-		if (enemy.MaxHp <= 0f) return;
-		float barWidth = spriteHeight * 0.5f;
-		Vector2 center = new(screenX + shake.X, bottom - spriteHeight * 0.5f + shake.Y);
-		Vector2 barPos = center + new Vector2(-barWidth * 0.5f, -spriteHeight * 0.62f);
-		DrawRect(new Rect2(barPos, new Vector2(barWidth, 4f)), new Color(0f, 0f, 0f, 0.6f));
-		float healthT = Mathf.Clamp(enemy.Hp / enemy.MaxHp, 0f, 1f);
-		DrawRect(new Rect2(barPos, new Vector2(barWidth * healthT, 4f)), Color.FromHtml("ef5350"));
-	}
-
-	/// <summary>
-	/// Dibuja una textura recortando cada columna de pantalla contra el zBuffer de las paredes,
-	/// en vez de comprobar un único punto central. Así un enemigo que asoma por una esquina se
-	/// revela progresivamente en vez de aparecer/desaparecer de golpe. También tiene en cuenta
-	/// que las paredes solo ocupan una franja vertical limitada de la columna (dejando cielo/suelo
-	/// visibles arriba/abajo): si el sprite cae fuera de esa franja no se considera tapado aunque
-	/// esté más lejos que la pared. Agrupa columnas visibles consecutivas en tramos para no emitir
-	/// una llamada de dibujo por cada píxel de ancho.
-	/// </summary>
-	private bool DrawTextureColumnsClipped(Texture2D texture, Rect2 destination, Rect2 source, Vector2 size, float depth)
-	{
-		if (destination.Size.X <= 0f || _zBuffer.Length == 0) return false;
-		int screenStart = Mathf.Max(0, Mathf.FloorToInt(destination.Position.X));
-		int screenEnd = Mathf.Min(Mathf.CeilToInt(size.X) - 1, Mathf.CeilToInt(destination.Position.X + destination.Size.X) - 1);
-		if (screenEnd < screenStart) return false;
-
-		int rayCount = _zBuffer.Length;
-		bool drewAny = false;
-		int runStart = -1;
-
-		for (int column = screenStart; column <= screenEnd + 1; column++)
-		{
-			bool visible = false;
-			if (column <= screenEnd)
-			{
-				int rayIndex = Mathf.Clamp((int)(column / size.X * rayCount), 0, rayCount - 1);
-				if (depth < _zBuffer[rayIndex])
-				{
-					visible = true;
-				}
-				else
-				{
-					// Más lejos que la pared en esta columna: solo cuenta como "tapado" si la
-					// franja que realmente se dibujó ahí (ni cielo ni suelo) se solapa con el
-					// sprite. Por encima/debajo de esa franja no hay pared real dibujada.
-					float wallTop = _wallTopBuffer[rayIndex];
-					float wallBottom = size.Y - wallTop;
-					visible = destination.Position.Y + destination.Size.Y <= wallTop || destination.Position.Y >= wallBottom;
-				}
-			}
-
-			if (visible)
-			{
-				if (runStart < 0) runStart = column;
-			}
-			else if (runStart >= 0)
-			{
-				float u0 = (runStart - destination.Position.X) / destination.Size.X;
-				float u1 = (column - destination.Position.X) / destination.Size.X;
-				Rect2 runSource = new(source.Position.X + u0 * source.Size.X, source.Position.Y, (u1 - u0) * source.Size.X, source.Size.Y);
-				Rect2 runDestination = new(runStart, destination.Position.Y, column - runStart, destination.Size.Y);
-				DrawTextureRectRegion(texture, runDestination, runSource);
-				drewAny = true;
-				runStart = -1;
-			}
-		}
-
-		return drewAny;
-	}
 
 	private void DrawParticle(Particle particle, Vector2 size, float screenDistance, Vector2 direction, Vector2 plane, Vector2 shake)
 	{
@@ -2306,9 +2397,9 @@ public partial class GameMain : Node2D
 	private static float EnemyScale(EnemyType type) => type switch { EnemyType.Tank => 1.5f, EnemyType.Boss => 2.5f, EnemyType.Sentinel => 2.8f, _ => 1.2f };
 	private Texture2D? EnemyTexture(EnemyType type) => type switch { EnemyType.Melee => _redEnemy, EnemyType.Ranged => _greenWizard, EnemyType.Tank => _blueTank, EnemyType.Boss => _boss, _ => _sentinel };
 
-	// La escala de la textura en el mundo coincide con DrawWorldSprite: cada
-	// spritesheet contiene cinco fotogramas horizontales. El radio es la mitad
-	// del ancho visible del fotograma ya escalado, de modo que brazos y alas no
+	// La escala en el mundo coincide con Update3DSprites: cada spritesheet
+	// contiene cinco fotogramas horizontales. El radio es la mitad del ancho
+	// visible del fotograma ya escalado, de modo que brazos y alas no
 	// atraviesan las paredes y los proyectiles impactan donde se ve al enemigo.
 	private float EnemyCollisionRadius(Enemy enemy)
 	{
@@ -2335,7 +2426,6 @@ public partial class GameMain : Node2D
 		return stick.Normalized() * rescaled;
 	}
 
-	private enum SpriteKind { Enemy, Projectile, Item, RemotePlayer }
 	private enum ItemType { PotionRed, PotionBlue, Scroll }
 	private enum ShopEntryKind { Potion, Weapon, Armor, Accessory, Shield }
 	private enum UiAction
@@ -2352,7 +2442,6 @@ public partial class GameMain : Node2D
 
 	private readonly record struct UiHit(UiAction Action, Rect2 Rect);
 	private readonly record struct ShopEntry(string Label, int Cost, ShopEntryKind Kind, int Index);
-	private readonly record struct WorldSprite(Vector2 Position, SpriteKind Kind, object Source, Color Color, float Scale);
 
 	// Estado replicado de un jugador remoto: solo lo que hace falta para dibujarlo
 	// en el mundo y en el minimapa. Nada de esto se valida en el host todavía
@@ -2409,7 +2498,6 @@ public partial class GameMain : Node2D
 		public float AttackCooldown;
 		public float HitFlash;
 		public bool Rewarded;
-		public float Bob;
 		public int AnimationFrame;
 		public float AnimationTimer;
 		public bool PlayerVisible;
