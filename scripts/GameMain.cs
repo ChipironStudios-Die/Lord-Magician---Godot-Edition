@@ -459,9 +459,17 @@ public partial class GameMain : Node2D
 		}
 		if (root.GetNodeOrNull<Sprite3D>("HealthFill") is Sprite3D fill)
 		{
-			float filledWidth = barWidth * healthT;
-			fill.Scale = new Vector3(Mathf.Max(0.001f, filledWidth), barHeight, 1f);
-			fill.Position = new Vector3(-(barWidth - filledWidth) * 0.5f, barY, 0.001f);
+			float filledWidth = Mathf.Max(0.001f, barWidth * healthT);
+			fill.Scale = new Vector3(filledWidth, barHeight, 1f);
+			fill.Position = new Vector3(0f, barY, 0.001f);
+			// El relleno se ancla al borde izquierdo del fondo con Offset (espacio
+			// local del sprite, que SÍ rota con el Billboard) en vez de Position
+			// (espacio del padre, que no rota). Con Position solo quedaba alineado
+			// desde el ángulo con el que se probó y se descolocaba al rodear al
+			// enemigo. Offset va en píxeles, así que se compensa por PixelSize y
+			// por el propio Scale (que también lo escala).
+			float worldShift = -(barWidth - filledWidth) * 0.5f;
+			fill.Offset = new Vector2(worldShift / (fill.PixelSize * filledWidth), 0f);
 		}
 	}
 
