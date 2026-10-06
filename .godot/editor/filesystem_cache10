@@ -1,10 +1,10 @@
 9cad1ddce9e5a63143ba340c9520626b
-::res://::1791318531
-export_presets.cfg::TextFile::-1::1791318327::0::1::::<><><>0<>0<><>::
+::res://::1791320387
+export_presets.cfg::TextFile::-1::1791318909::0::1::::<><><>0<>0<><>::
 Main.tscn::PackedScene::8340090710575061661::1791318365::0::1::::<><><>0<>0<><>::res://scripts/GameMain.gd
 README.md::TextFile::-1::1791318365::0::1::::<><><>0<>0<><>::
 ::res://assets/::1791318326
-::res://assets/audio/::1791318326
+::res://assets/audio/::1791318532
 bgm_boss5_game.ogg::AudioStreamOggVorbis::1109117231351597882::1791318326::1791318532::1::::<><><>0<>0<>bb651ca58fc26b3c624260a2168c209c<>res://.godot/imported/bgm_boss5_game.ogg-3ec11730dbcb05d9737b90e714f72f7e.oggvorbisstr::
 bgm_boss8_game.ogg::AudioStreamOggVorbis::7914545854010517553::1791318326::1791318532::1::::<><><>0<>0<>be8e11dc687837d779045b60d4f538d5<>res://.godot/imported/bgm_boss8_game.ogg-18251cf57df5cde7ab3cf17729ce1d87.oggvorbisstr::
 bgm_finalboss_game.ogg::AudioStreamOggVorbis::6878565011187119527::1791318326::1791318532::1::::<><><>0<>0<>5b5b875cafab799fd1ed40a036d8afdb<>res://.godot/imported/bgm_finalboss_game.ogg-471e9a0d89a8f427f9ee94e4d54f5f44.oggvorbisstr::
@@ -17,7 +17,7 @@ snd_enemy_red.ogg::AudioStreamOggVorbis::8139168109994158843::1791318326::179131
 snd_enemy_sentinel.ogg::AudioStreamOggVorbis::2713363558078758425::1791318326::1791318532::1::::<><><>0<>0<>263ea7b68c9b5e1c5532c14b097843df<>res://.godot/imported/snd_enemy_sentinel.ogg-ce30df6e25f20daf77785a5f1774d4bf.oggvorbisstr::
 snd_player_hit.ogg::AudioStreamOggVorbis::1279418965617851632::1791318326::1791318532::1::::<><><>0<>0<>9f3083998c5ee2b6266cfc18e9530934<>res://.godot/imported/snd_player_hit.ogg-06715347d1b1258dbe7c2a03d2572de1.oggvorbisstr::
 snd_shoot.ogg::AudioStreamOggVorbis::8790837705470122970::1791318326::1791318532::1::::<><><>0<>0<>566f53241dabc76821f2e42ece889cc9<>res://.godot/imported/snd_shoot.ogg-5667ec64c376306887142de079a33e7c.oggvorbisstr::
-::res://assets/sprites/::1791318327
+::res://assets/sprites/::1791318534
 app_icon.png::CompressedTexture2D::152344787590884860::1791318326::1791318534::1::::<><><>0<>0<>5a3162f03185d70953a8bac1c616594f<>res://.godot/imported/app_icon.png-8601f828f59c582bcabb33228e225997.ctex::
 blue_potion.png::CompressedTexture2D::816293156038003334::1791318326::1791318532::1::::<><><>0<>0<>4e15c6caa3c6f90f40a2f0245a4aa199<>res://.godot/imported/blue_potion.png-91f63258fe5ad0a096501f92acb2576e.ctex::
 blue_tank_spritesheet.png::CompressedTexture2D::2025153544565588224::1791318326::1791318532::1::::<><><>0<>0<>4f26947151df1557389cddab829d3ae7<>res://.godot/imported/blue_tank_spritesheet.png-69f58c4346d6ae8747e31d85059d2fd8.ctex::
@@ -35,6 +35,6 @@ red_enemy_spritesheet.png::CompressedTexture2D::7443231087991229886::1791318327:
 red_potion.png::CompressedTexture2D::4222604384986155508::1791318327::1791318532::1::::<><><>0<>0<>9b0b152bf974ee1684e4cd97ec1ffb28<>res://.godot/imported/red_potion.png-17120717aa47764eb88d81114b706802.ctex::
 sentinel_spritesheet.png::CompressedTexture2D::9196470025369516041::1791318327::1791318532::1::::<><><>0<>0<>ac1aa08824d4de1aabd5ec963536d610<>res://.godot/imported/sentinel_spritesheet.png-ef72643f132b8dcfcb4e5f65dc118aee.ctex::
 weapons.png::CompressedTexture2D::7175003704769554474::1791318327::1791318534::1::::<><><>0<>0<>1fe03cd8f1018f50861121dc04f554d0<>res://.godot/imported/weapons.png-27a166622c698fac517fe46c631961ee.ctex::
-::res://scripts/::1791318386
+::res://scripts/::1791318532
 GameData.gd::GDScript::2019101376095467320::1791318362::0::1::::GameData<>RefCounted<><>0<>0<><>::
 GameMain.gd::GDScript::5553253970695977867::1791318362::0::1::::<>Node2D<><>0<>0<><>::
